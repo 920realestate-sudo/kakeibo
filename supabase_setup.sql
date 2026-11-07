@@ -32,6 +32,9 @@ alter table public.expenses  enable row level security;
 alter table public.household enable row level security;
 
 grant usage on schema public to anon;
+-- ※ Supabase は新しいテーブルに anon へ全権限（delete / truncate 等）を自動付与するため、いったん外してから必要な分だけ付け直す
+revoke all on public.expenses  from anon;
+revoke all on public.household from anon;
 grant select, insert, update on public.expenses  to anon;
 grant select, insert, update on public.household to anon;
 -- ※ delete は許可しません（アプリに削除機能がないため。キー漏えい時の被害を減らします）
