@@ -1,0 +1,3452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f9e8f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="家計簿">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>ふたりの家計簿</title>
+<style>
+:root {
+  --bg: #f4f7f6;
+  --card: #ffffff;
+  --text: #25302d;
+  --sub: #7a8a85;
+  --line: #e3eae7;
+  --accent: #2f9e8f;
+  --accent-dark: #247c70;
+  --accent-soft: #e3f4f1;
+  --a: #4a7bd8;      /* 夫 */
+  --b: #e0709a;      /* 妻 */
+  --danger: #d9534f;
+  --sun: #d9534f;
+  --sat: #3b7dd8;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  line-height: 1.5;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.app { max-width: 720px; margin: 0 auto; padding: 16px 12px 48px; }
+h1 { font-size: 20px; margin: 4px 4px 14px; overflow-wrap: anywhere; }
+.topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.topbar .ghost { flex: none; margin-top: 2px; }
+.topbar { flex-wrap: wrap; }
+.topbar h1 { flex: 1 1 160px; min-width: 0; }
+@media (max-width: 520px) { .topbar h1 { flex-basis: 100%; margin-bottom: 6px; } .topbar .tbtns { width: 100%; justify-content: flex-start; } }
+h1 span { color: var(--accent); }
+.card { background: var(--card); border-radius: 16px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(30,60,55,.06); }
+button { font-family: inherit; cursor: pointer; }
+
+/* 月ナビ */
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.month-nav h2 { font-size: 18px; margin: 0; text-align: center; }
+.month-nav .total { font-size: 12px; color: var(--sub); display: block; font-weight: normal; }
+.nav-btn { width: 44px; height: 44px; border: none; border-radius: 12px; background: var(--accent-soft); color: var(--accent-dark); font-size: 18px; }
+.nav-btn:active { background: #cdebe6; }
+
+/* カレンダー */
+.weekdays, .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.weekdays div { text-align: center; font-size: 12px; color: var(--sub); padding: 4px 0; }
+.weekdays div:first-child { color: var(--sun); }
+.weekdays div:last-child { color: var(--sat); }
+.day {
+  position: relative; min-height: 58px; border: 1px solid var(--line); border-radius: 10px;
+  background: #fff; padding: 4px 3px; text-align: center; font-size: 14px; color: var(--text);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px;
+}
+.day.empty { border: none; background: transparent; cursor: default; }
+.day:not(.empty):hover { background: var(--accent-soft); }
+.day.sun .num { color: var(--sun); }
+.day.sat .num { color: var(--sat); }
+.day.hol .num { color: var(--sun); }
+.day.today .num { background: var(--accent); color: #fff; border-radius: 50%; width: 22px; height: 22px; line-height: 22px; }
+.day.selected { border: 2px solid var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px rgba(47,158,143,.22); }   /* クリックで固定した日 */
+.day .num { font-weight: 600; }
+.day .amt { font-size: 10px; line-height: 1.25; font-weight: 600; white-space: nowrap; max-width: 100%; overflow: hidden; }
+.grid:focus { outline: none; }
+.day:focus { outline: none; }
+.day .amt.a { color: #2f62c4; }
+.day .amt.b { color: #d6457f; }
+.day .amt.t { color: #1f8a4c; }
+.day { min-height: 74px; padding: 3px 1px; gap: 0; }
+@media (min-width: 560px) { .day { min-height: 82px; } .day .amt { font-size: 11px; } }
+
+/* 一覧 */
+.list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+.list-head h3 { margin: 0; font-size: 16px; }
+.primary { border: none; background: var(--accent); color: #fff; border-radius: 12px; padding: 0 16px; height: 44px; font-size: 15px; font-weight: 700; }
+.primary:active { background: var(--accent-dark); }
+.item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.item:first-of-type { border-top: none; }
+.badge { flex: none; min-width: 36px; text-align: center; font-size: 12px; font-weight: 700; color: #fff; border-radius: 999px; padding: 3px 8px; }
+.badge.a { background: var(--a); } .badge.b { background: var(--b); }
+.item .main { flex: 1; min-width: 0; }
+.item .cat { font-weight: 600; font-size: 14px; }
+.item .memo { font-size: 12px; color: var(--sub); overflow-wrap: anywhere; }
+.item .yen { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.edit { flex: none; width: 40px; height: 40px; border: none; background: transparent; color: var(--sub); font-size: 18px; border-radius: 10px; }
+.edit:hover { color: var(--accent-dark); background: var(--accent-soft); }
+.upd { display: inline-block; margin-top: 3px; font-size: 11px; color: var(--sub); background: #f3f6f5; border-radius: 6px; padding: 1px 7px; overflow-wrap: anywhere; }
+.upd.none { opacity: .75; }
+.upd.zero, .item .yen.zero { color: var(--sub); }
+.topbar .tbtns { display: flex; gap: 6px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.topbar .tbtns .ghost { margin-top: 2px; }
+.hist { margin: 0 0 12px; font-size: 12px; color: var(--sub); }
+.hist summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.hist ul { margin: 4px 0 0; padding-left: 16px; max-height: 120px; overflow-y: auto; }
+.hist li { margin-bottom: 3px; overflow-wrap: anywhere; }
+.csv-opt { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.csv-opt button { text-align: left; height: auto; padding: 12px 14px; line-height: 1.4; }
+.csv-opt small { display: block; font-weight: 400; color: var(--sub); font-size: 12px; }
+.empty-msg { color: var(--sub); font-size: 14px; text-align: center; padding: 14px 0; }
+.day-total { text-align: right; font-weight: 700; border-top: 2px solid var(--line); padding-top: 8px; margin-top: 4px; }
+
+/* 比較グラフ */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--sub); margin-bottom: 10px; }
+.legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.legend .lg { display: inline-flex; align-items: center; }
+.crow { padding: 8px 0; }
+.cname { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.cname .cmonth { font-weight: 400; font-size: 11px; color: var(--sub); margin-left: 6px; }
+.bar { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bar .track { flex: 1 1 0; min-width: 0; height: 28px; background: #f0f4f3; border-radius: 8px; overflow: hidden; }
+.stack { display: flex; height: 100%; min-width: 0; transition: width .25s; }
+.seg { height: 100%; flex: none; border-right: 1px solid rgba(255,255,255,.7); cursor: pointer; }
+.seg:last-child { border-right: none; }
+.bar .val { flex: none; min-width: 66px; text-align: right; font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.bar .val.zero { color: var(--sub); font-weight: 400; }
+.tip { position: fixed; display: none; z-index: 20; background: rgba(30,40,38,.92); color: #fff; font-size: 12px; padding: 5px 9px; border-radius: 8px; pointer-events: none; white-space: nowrap; }
+.catdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.chip { display: inline-flex; align-items: center; }
+.color-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.color-row label { font-size: 12px; color: var(--sub); margin-right: 2px; }
+.color-row input[type=color] { width: 40px; height: 36px; border: 1.5px solid var(--line); border-radius: 8px; padding: 2px; background: #fff; }
+.preset { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); padding: 0; }
+.preset.on { box-shadow: 0 0 0 2px var(--text); }
+
+/* 精算ダッシュボード */
+.settle-hero { border-radius: 14px; padding: 16px 12px; text-align: center; background: var(--accent-soft); margin-bottom: 12px; }
+.settle-hero .lbl { font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+.settle-hero .msg { font-size: 17px; font-weight: 700; line-height: 1.6; overflow-wrap: anywhere; }
+.settle-hero .big { display: block; font-size: 30px; color: var(--accent-dark); margin-top: 2px; }
+.pill { display: inline-block; color: #fff; border-radius: 999px; padding: 1px 12px; font-size: 15px; }
+.pill.a { background: var(--a); } .pill.b { background: var(--b); }
+.sum4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+@media (max-width: 460px) { .sum4 { grid-template-columns: repeat(2, 1fr); } }
+.sum4 > div { background: #f6f9f8; border-radius: 12px; padding: 8px 6px; text-align: center; min-width: 0; }
+.sum4 .k { font-size: 11px; color: var(--sub); }
+.sum4 .v { font-size: 15px; font-weight: 700; margin-top: 2px; overflow-wrap: anywhere; }
+.sum4 .v.a { color: #2f62c4; } .sum4 .v.b { color: #d6457f; }
+.bal .who { font-size: 13px; font-weight: 700; margin: 8px 0 3px; display: flex; justify-content: space-between; gap: 8px; }
+.bal .who span:last-child { font-weight: 600; }
+.btrack { position: relative; height: 26px; background: #f0f4f3; border-radius: 8px; overflow: hidden; }
+.bfill { height: 100%; transition: width .25s; }
+.bfill.a { background: var(--a); } .bfill.b { background: var(--b); }
+.half { position: absolute; left: 50%; top: 0; bottom: 0; border-left: 2px dashed rgba(30,40,38,.55); }
+.halfnote { font-size: 11px; color: var(--sub); text-align: center; margin-top: 6px; }
+
+/* クリック可能な支払済額 */
+.clickable { cursor: pointer; transition: background .15s, box-shadow .15s; }
+.sum4 > .clickable:hover, .sum4 > .clickable:focus { background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent); outline: none; }
+.sum4 > .clickable:hover .v { text-decoration: underline; }
+.sum4 .hint { font-size: 10px; color: var(--accent-dark); margin-top: 2px; }
+.brow { border-radius: 10px; padding: 0 6px 6px; margin: 0 -6px; }
+.brow:hover, .brow:focus { background: var(--accent-soft); outline: none; }
+.brow:hover .who span:first-child { text-decoration: underline; }
+.brow .who span:first-child { font-size: 13px; }
+
+/* 内訳モーダル */
+.modal.detail { display: flex; flex-direction: column; overflow: hidden; max-height: 88vh; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+.dhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.dhead h3 { margin: 0; font-size: 16px; padding-left: 10px; border-left: 5px solid var(--a); overflow-wrap: anywhere; }
+.dhead h3.b { border-left-color: var(--b); }
+.dclose { flex: none; width: 40px; height: 40px; border: none; border-radius: 10px; background: #f0f4f3; color: var(--sub); font-size: 18px; }
+.dclose:hover { background: #e3eae7; }
+.dbody { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.drow { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.drow:first-child { border-top: none; }
+.dday { flex: none; width: 38px; font-weight: 700; font-size: 14px; }
+.dmid { flex: 1; min-width: 0; }
+.drow .yen { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.cbadge { display: inline-block; color: #fff; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; text-shadow: 0 1px 1px rgba(0,0,0,.25); }
+.dmid .memo { font-size: 12px; color: var(--sub); margin-top: 2px; overflow-wrap: anywhere; }
+.dsum { flex: none; margin-top: 8px; padding-top: 10px; border-top: 2px solid var(--line); text-align: right; font-size: 20px; font-weight: 800; }
+
+/* 年間推移 */
+[hidden] { display: none !important; }
+.toolbar { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.ghost.sm { height: 36px; padding: 0 12px; font-size: 13px; font-weight: 700; color: var(--accent-dark); border-color: var(--accent); }
+.ghost.sm:hover { background: var(--accent-soft); }
+.sum4.sum2 { grid-template-columns: repeat(2, 1fr); }
+.mblock { padding: 7px 0; border-top: 1px solid var(--line); }
+.mblock:first-child { border-top: none; }
+.mjump { border: none; background: transparent; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text); padding: 4px 8px; margin-left: -8px; border-radius: 8px; cursor: pointer; }
+.mjump.cur { color: var(--accent-dark); }
+.mjump:hover, .mjump:focus { background: var(--accent-soft); text-decoration: underline; outline: none; }
+.mline { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.mline .tag { flex: none; width: 28px; font-size: 10px; color: var(--sub); }
+.mline .track { flex: 1 1 0; min-width: 0; height: 18px; background: #f0f4f3; border-radius: 6px; overflow: hidden; }
+.mline .stack { display: flex; height: 100%; }
+.mline .tot { flex: none; min-width: 70px; text-align: right; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.mline .tot.zero { color: var(--sub); font-weight: 400; }
+#listTitle.holiday { color: var(--sun); }
+.mline .tot { min-width: 112px; }  /* 3段の右端幅を揃えてバー終端をそろえる */
+.mline .tot.bedit { border: none; background: transparent; font-family: inherit; padding: 0; cursor: pointer; border-radius: 6px; }
+.mline .tot.bedit:hover { background: var(--accent-soft); }
+.mline .tot.bedit .pen { font-style: normal; font-size: 10px; margin-left: 3px; opacity: .55; }
+.mline .tot.bedit:hover .pen { opacity: 1; }
+.mline .tot.unset { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; font-size: 12px; font-weight: 600; color: var(--sub); }
+.mline .tot.unset small { font-size: 9.5px; font-weight: 400; }
+.mline .tot.btot { font-size: 12px; font-weight: 800; letter-spacing: -.2px; }
+.mline .tot.btot .bamt { color: var(--sub); font-weight: 600; }
+.mline .bseg { border-right: none; }
+.mline .bseg.ok { background: #10b981; } .mline .bseg.warn { background: #f59e0b; } .mline .bseg.over { background: #ef4444; }
+.mline .bseg.over-x { background: repeating-linear-gradient(45deg, #b91c1c 0 4px, #dc2626 4px 8px); }
+.mline .bseg.none { background: transparent; }
+.mline .tot.ok { color: #0f9a6c; } .mline .tot.warn { color: #d98200; } .mline .tot.over { color: #d9363e; }
+.sum4 .v.unset { color: var(--sub); font-size: 13px; font-weight: 600; }
+.mline .seg.clk { cursor: pointer; }
+.mline .seg.clk:hover { filter: brightness(1.12); }
+.dday.cdate { width: 58px; }
+
+/* カテゴリ編集 */
+button.chip { border: none; font-family: inherit; cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.day-pop { position: fixed; z-index: 30; width: 260px; max-width: calc(100vw - 16px); background: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 32px rgba(20,40,36,.28), 0 0 0 1px rgba(20,40,36,.06); pointer-events: auto; max-height: 70vh; overflow-y: auto; opacity: 0; visibility: hidden; transition: opacity .15s, visibility .15s; }
+.day-pop.show { opacity: 1; visibility: visible; }
+.day-pop::before { content: ''; position: absolute; left: 0; right: 0; height: 16px; }   /* マスとの隙間を橋渡しして、カーソルが通っても消えない */
+.day-pop.above::before { bottom: -16px; }
+.day-pop.below::before { top: -16px; }
+.day-pop .pi[data-id] { cursor: pointer; border-radius: 8px; margin: 0 -6px; padding-left: 6px; padding-right: 6px; transition: background .12s; }
+.day-pop .pi[data-id]:hover { background: var(--accent-soft); }
+.day-pop .pnote { text-align: center; font-size: 11px; color: var(--sub); margin-top: 6px; }
+.day-pop h4 { margin: 0 0 8px; font-size: 14px; }
+.day-pop h4.holiday { color: var(--sun); }
+.day-pop .pi { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.day-pop h4 + .pi { border-top: none; }
+.day-pop .pi .badge { font-size: 11px; padding: 2px 7px; min-width: 0; }
+.day-pop .pi .pm { flex: 1; min-width: 0; }
+.day-pop .pi .pc { font-weight: 600; }
+.day-pop .pi .memo { font-size: 11px; color: var(--sub); overflow-wrap: anywhere; }
+.day-pop .pi .py { font-weight: 700; white-space: nowrap; }
+.day-pop .pt { text-align: right; font-weight: 800; border-top: 2px solid var(--line); margin-top: 4px; padding-top: 6px; }
+.day-pop .pe { color: var(--sub); text-align: center; padding: 8px 0 2px; font-size: 13px; }
+.photo-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.photo-row .ghost.sm { height: 36px; }
+.date-row { position: relative; display: flex; gap: 6px; align-items: center; }
+#dateIn { flex: 1; min-width: 0; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font-size: 16px; font-family: inherit; background: #fff; color: var(--text); }
+#dateIn:focus { outline: none; border-color: var(--accent); }
+#datePick { height: 40px; width: 46px; padding: 0; font-size: 18px; }
+.date-picker-hidden { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.ocr-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #eef6ff; color: #2f62c4; font-size: 12.5px; font-weight: 600; }
+.ocr-status[hidden] { display: none; }
+.ocr-status.ok { background: #e7f7f2; color: #0f7a5e; }
+.ocr-status.ng { background: #fdeceb; color: #c0392b; }
+.ocr-txt { flex: 1; min-width: 0; }
+.ocr-bar { height: 5px; border-radius: 3px; background: rgba(47,98,196,.18); margin-top: 5px; overflow: hidden; }
+.ocr-bar i { display: block; height: 100%; width: 0; background: #2f62c4; transition: width .2s; }
+.ocr-status.ok .ocr-bar, .ocr-status.ng .ocr-bar { display: none; }
+.spin { flex: none; width: 16px; height: 16px; border: 2.5px solid rgba(47,98,196,.25); border-top-color: #2f62c4; border-radius: 50%; animation: spin .8s linear infinite; }
+.ocr-status.ok .spin, .ocr-status.ng .spin { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; max-width: calc(100vw - 32px); background: rgba(30,40,38,.94); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .2s; text-align: center; }
+.toast.show { opacity: 1; }
+.store-row { display: flex; gap: 6px; align-items: center; }
+.store-row select { flex: 1; min-width: 0; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font-size: 16px; font-family: inherit; background: #fff; color: var(--text); }
+.store-row select:focus { outline: none; border-color: var(--accent); }
+.store-row .ghost.sm { height: 40px; white-space: nowrap; }
+.store-suggest { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; padding: 6px 10px; border-radius: 10px; background: #fff7d6; border: 1.5px solid #f2c94c; color: #7a5a00; font-size: 12.5px; font-weight: 600; }
+.store-suggest[hidden] { display: none; }
+.store-suggest .ghost.sm { height: 30px; font-size: 12px; }
+#overlay10 { z-index: 20; }
+.updrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 3px; }
+.updrow .upd { margin-top: 0; }
+.upd-btn { display: inline-block; max-width: 100%; text-align: left; border: none; background: #f1f4f3; color: #5b6b67; border-radius: 999px; padding: 3px 11px; font-size: 11px; font-weight: 600; font-family: inherit; line-height: 1.5; cursor: pointer; transition: background .12s, color .12s; }
+.upd-btn.edited { background: #eef2ff; color: #3b4fb5; font-weight: 700; }
+.upd-btn:hover, .upd-btn:focus-visible { background: #dde5ff; color: #22308a; text-decoration: underline; text-underline-offset: 2px; outline: none; }
+.upd-btn:not(.edited):hover { background: #e3eae7; color: #2c3b37; }
+.hist-pop { position: fixed; z-index: 34; width: 320px; max-width: calc(100vw - 16px); max-height: 70vh; overflow: hidden; background: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 32px rgba(20,40,36,.28), 0 0 0 1px rgba(20,40,36,.06); pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .15s, visibility .15s; }
+.hist-pop.show { opacity: 1; visibility: visible; }
+.hist-pop h4 { margin: 0 0 8px; font-size: 14px; }
+.hm-more { font-size: 11px; color: var(--sub); text-align: center; margin: 2px 0 4px; }
+#overlay11 { z-index: 35; }
+.hm-first { background: #f3f6f5; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 13px; }
+.hm-first b { font-size: 12px; color: var(--sub); display: block; margin-bottom: 3px; }
+.hm-item { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.hm-item:first-child { border-top: none; }
+.hm-no { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; text-align: center; line-height: 22px; }
+.hm-main { flex: 1; min-width: 0; }
+.hm-when { font-size: 12px; color: var(--sub); margin-bottom: 3px; }
+.hm-main ul { margin: 0; padding-left: 16px; font-size: 13px; }
+.hm-main li { margin: 1px 0; overflow-wrap: anywhere; }
+.store-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; flex: none; }
+.stab { display: inline-flex; align-items: center; gap: 5px; border: 1.5px solid var(--line); background: #fff; color: var(--sub); border-radius: 999px; padding: 4px 12px 4px 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.stab i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.stab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.stab.on i { box-shadow: 0 0 0 2px #fff; }
+.store-catlabel { flex: none; font-size: 12px; font-weight: 700; color: var(--sub); margin: 2px 2px 6px; }
+.store-add { display: flex; gap: 6px; margin-bottom: 4px; flex: none; }
+.store-add input { flex: 1; min-width: 0; height: 44px; font-size: 16px; }
+.store-add .primary { flex: none; }
+.srow { display: flex; align-items: center; gap: 6px; padding: 8px 4px; border-top: 1px solid var(--line); background: #fff; transition: transform .22s ease, opacity .15s, box-shadow .12s, background .15s; }
+.srow:first-child { border-top: none; }
+.srow:hover { background: #f6faf9; }
+.srow.dragging { opacity: .5; }
+.srow.drop-before { box-shadow: 0 -3px 0 0 #2f6fe0; }
+.srow.drop-after { box-shadow: 0 3px 0 0 #2f6fe0; }
+.shandle { flex: none; width: 26px; text-align: center; color: var(--sub); font-size: 18px; cursor: grab; user-select: none; }
+.shandle:active { cursor: grabbing; }
+.smv { flex: none; width: 34px; height: 32px; border: 1.5px solid var(--line); background: #fff; color: var(--sub); border-radius: 8px; font-size: 12px; font-family: inherit; cursor: pointer; padding: 0; }
+.smv:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-dark); border-color: var(--accent); }
+.smv:disabled { opacity: .3; cursor: default; }
+.srow .sname { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.srow .sdel { flex: none; border: none; background: #fdeceb; color: var(--danger); border-radius: 8px; height: 32px; padding: 0 10px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.srow .sdel.confirm { background: var(--danger); color: #fff; }
+.sbadge { display: inline-block; font-size: 11px; font-weight: 700; color: #6a5300; background: #fff1bf; border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+.ocr-review { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: #fff7d6; border: 1.5px solid #f2c94c; color: #7a5a00; font-size: 13.5px; font-weight: 700; line-height: 1.5; }
+.ocr-review[hidden] { display: none; }
+.ocr-filled { background: #fffbe6 !important; border-color: #f2c94c !important; }
+#form .actions { position: sticky; bottom: 0; z-index: 2; background: #fff; padding: 8px 0 2px; box-shadow: 0 -8px 8px -8px rgba(0,0,0,.15); }   /* 画面が低くても確認・登録ボタンが常に見える */
+.rc-layout { display: block; }
+.rc-side { margin-bottom: 10px; text-align: center; background: #f3f6f5; border-radius: 12px; padding: 6px; }
+.rc-side[hidden] { display: none; }
+.rc-side img { display: block; margin: 0 auto; max-width: 100%; max-height: 30vh; width: auto; height: auto; object-fit: contain; border-radius: 8px; cursor: zoom-in; }
+.rc-side-hint { font-size: 11px; color: var(--sub); margin-top: 4px; }
+/* 写真があるときは、PCでは左に画像・右にフォームの2カラム、スマホでは上に画像・下にフォーム */
+#form.has-photo { max-width: 480px; }
+@media (min-width: 760px) {
+  #form.has-photo { max-width: 900px; }
+  #form.has-photo .rc-layout { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 18px; align-items: start; }
+  #form.has-photo .rc-side { position: sticky; top: 0; margin-bottom: 0; }
+  #form.has-photo .rc-side img { max-height: 64vh; }
+}
+.photo-prev[hidden] { display: none; }
+.photo-prev { display: inline-flex; align-items: center; gap: 6px; }
+.photo-prev img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; }
+.photo-del { border: none; background: #fdeceb; color: var(--danger); border-radius: 8px; height: 30px; padding: 0 10px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.rcpt { display: inline-block; border: none; background: #eef6ff; color: #2f62c4; border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; margin-top: 3px; }
+.rcpt:hover { background: #dbeafe; }
+#overlay9 { z-index: 40; }
+.rc-modal { max-width: 560px; }
+.rc-body { flex: 1 1 auto; min-height: 0; overflow: auto; text-align: center; background: #f3f6f5; border-radius: 12px; padding: 6px; }
+.rc-body { touch-action: pan-x pan-y pinch-zoom; }
+.rc-body img { cursor: zoom-in; }
+.rc-body img.zoomed { max-width: none; max-height: none; width: 190%; cursor: zoom-out; }
+.cats button.ocr-pick { box-shadow: 0 0 0 3px #f2c94c; }
+.rc-body img { max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 8px; }
+.rc-cap { flex: none; margin-top: 8px; font-size: 13px; color: var(--sub); text-align: center; }
+.modal.wide { max-width: 640px; }
+.sr-filters { flex: none; margin-bottom: 8px; }
+.sr-filters input[type=text], .sr-filters select { width: 100%; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font-size: 16px; font-family: inherit; background: #fff; }
+.sr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.sr-grid .seg button { height: 38px; font-size: 13px; padding: 0 4px; }
+.sr-grid .ghost { height: 38px; font-size: 13px; }
+.seg button.on:not(.a):not(.b) { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sr-cat { position: relative; }
+.sr-cat .catdot { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); margin: 0; pointer-events: none; z-index: 1; }
+.sr-cat select { padding-left: 28px !important; }
+.sr-sum { flex: none; font-weight: 800; font-size: 14px; padding: 6px 2px 8px; border-bottom: 2px solid var(--line); }
+.drow .edit { width: 34px; height: 34px; font-size: 16px; }
+.sr-item .sdate { flex: none; width: 76px; font-weight: 700; font-size: 13px; }
+#overlay { z-index: 12; }
+.line-toggles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+.ltog { display: inline-flex; align-items: center; gap: 5px; border: 1.5px solid var(--line); background: #fff; color: var(--text); border-radius: 999px; padding: 3px 11px 3px 8px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity .15s, background .15s; }
+.ltog i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ltog.off { opacity: .4; background: #f1f3f2; color: var(--sub); }
+.ltog.off i { filter: grayscale(1); }
+.lbulk { border: none; background: var(--accent-soft); color: var(--accent-dark); border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.lbulk:hover { background: #cdebe6; }
+.line-toggles .sp { flex: 1; }
+.line-box { width: 100%; overflow: hidden; }
+.line-box svg { display: block; }
+.line-box .hit { fill: transparent; cursor: pointer; }
+.line-box .empty-msg { padding: 40px 0; }
+.bud-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.bud-unset { width: 100%; border: 1.5px dashed var(--line); background: #fff; color: var(--sub); border-radius: 12px; padding: 14px; font-size: 14px; }
+.bud-unset:hover { border-color: var(--accent); color: var(--accent-dark); }
+.bud-track { height: 22px; background: #eef2f1; border-radius: 999px; overflow: hidden; margin: 4px 0 10px; }
+.bud-fill { height: 100%; border-radius: 999px; transition: width .3s, background-color .3s; min-width: 0; }
+.bud-fill.ok { background: #10b981; } .bud-fill.warn { background: #f59e0b; } .bud-fill.over { background: #ef4444; }
+.bud-pct { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+.bud-pct.ok { color: #0f9a6c; } .bud-pct.warn { color: #d98200; } .bud-pct.over { color: #d9363e; }
+.bud-alert { background: #fdeceb; color: #c0392b; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 700; margin-top: 10px; }
+.donut-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 22px; }
+.donut-box { position: relative; width: 210px; max-width: 100%; flex: none; }
+.donut-box svg { display: block; width: 100%; height: auto; }
+.donut-box circle.slice { cursor: pointer; transition: opacity .15s; }
+.donut-box.hov circle.slice { opacity: .45; }
+.donut-box.hov circle.slice.hl { opacity: 1; }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; text-align: center; padding: 0 34px; }
+.donut-center .k { font-size: 11px; color: var(--sub); }
+.donut-center .v { font-size: 20px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.donut-center .v.zero { color: var(--sub); font-size: 13px; font-weight: 600; }
+.donut-list { flex: 1 1 220px; min-width: 0; }
+.dl-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.dl-row:first-child { border-top: none; }
+.dl-row .nm { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.dl-row .amt { font-weight: 700; white-space: nowrap; }
+.dl-row .pct { width: 48px; text-align: right; color: var(--sub); white-space: nowrap; }
+button.chip[draggable=true] { cursor: grab; }
+button.chip.dragging { opacity: .5; }
+button.chip.drop-before { box-shadow: -4px 0 0 0 #2f6fe0; }
+button.chip.drop-after { box-shadow: 4px 0 0 0 #2f6fe0; }
+button.chip.editable:hover, button.chip.editable:focus { transform: scale(1.08); box-shadow: 0 0 0 2px var(--accent); outline: none; }
+.note { font-size: 11px; color: var(--sub); margin: -4px 0 10px; }
+.warn { display: none; background: #fff6e5; border: 1.5px solid #f2b24c; color: #7a4b00; border-radius: 12px; padding: 12px; font-size: 13px; margin-bottom: 10px; }
+.warn.open { display: block; }
+.warn .actions { margin-top: 10px; }
+.warn .primary { background: #d98a12; }
+#editForm .color-row input[type=color] { width: 44px; height: 40px; }
+#editForm .preset { width: 32px; height: 32px; }
+
+/* カテゴリ設定 */
+.card h3.sec { margin: 0 0 10px; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip { background: var(--accent-soft); color: var(--accent-dark); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.add-row { display: flex; gap: 8px; }
+input[type=text], input[type=number] {
+  width: 100%; height: 48px; border: 1.5px solid var(--line); border-radius: 12px; padding: 0 12px;
+  font-size: 16px; font-family: inherit; background: #fff; color: var(--text);
+}
+input:focus { outline: none; border-color: var(--accent); }
+
+/* モーダル */
+.overlay { position: fixed; inset: 0; background: rgba(20,35,32,.5); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+.overlay.open { display: flex; }
+.modal { background: #fff; width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); animation: up .18s ease-out; }
+@keyframes up { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (min-width: 560px) { .overlay { align-items: center; } .modal { border-radius: 20px; } }
+.modal h3 { margin: 0 0 10px; font-size: 17px; }
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 4px; font-weight: 600; }
+.seg { display: flex; gap: 8px; }
+/* グラフ用の .seg（height:100% 等）が入力モーダルのボタン群に波及して縦に伸びるのを防ぐ */
+.field > .seg, .sr-grid > .seg { height: auto; flex: none; border-right: none; cursor: default; }
+.seg button { flex: 1; height: 40px; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; font-size: 15px; font-weight: 700; color: var(--sub); }
+#opSeg button { height: 34px; font-size: 14px; }
+.seg button.on.a { background: var(--a); border-color: var(--a); color: #fff; }
+.seg button.on.b { background: var(--b); border-color: var(--b); color: #fff; }
+.cats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.cats button { min-height: 34px; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; font-size: 13px; color: var(--text); padding: 6px 10px; overflow-wrap: anywhere; }
+.cats button.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.amount-wrap { position: relative; }
+.amount-wrap span { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--sub); }
+.amount-wrap input { text-align: right; padding-right: 36px; font-size: 20px; font-weight: 700; }
+.actions { display: flex; gap: 8px; margin-top: 4px; }
+.actions .primary { flex: 1; }
+.ghost { border: 1.5px solid var(--line); background: #fff; color: var(--sub); border-radius: 12px; height: 44px; padding: 0 16px; font-size: 15px; }
+.err { color: var(--danger); font-size: 13px; margin: 0 0 6px; }
+.err:empty { display: none; }
+#overlay .modal { padding-top: 14px; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+#overlay .field input[type=text] { height: 40px; }
+#overlay .amount-wrap input { font-size: 18px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1 id="appTitle"></h1>
+    <div class="tbtns">
+      <button type="button" class="ghost sm" id="openSearch">🔍 検索・絞り込み</button>
+      <button type="button" class="ghost sm" id="openCsv">📥 CSV出力</button>
+      <button type="button" class="ghost sm" id="openSettings">⚙️ 設定</button>
+    </div>
+  </div>
+
+  <div id="viewCal">
+  <section class="card">
+    <div class="toolbar"><button type="button" class="ghost sm" id="toYear">📊 年間推移</button></div>
+    <div class="month-nav">
+      <button class="nav-btn" id="prev" aria-label="前の月">◀</button>
+      <h2><span id="monthLabel"></span><span class="total" id="monthTotal"></span></h2>
+      <button class="nav-btn" id="next" aria-label="次の月">▶</button>
+    </div>
+    <div class="weekdays"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
+    <div class="grid" id="grid" tabindex="0"></div>
+  </section>
+
+  <section class="card">
+    <div class="list-head">
+      <h3 id="listTitle"></h3>
+      <button class="primary" id="openAdd">＋ 支出を追加</button>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section class="card" id="budgetCard">
+    <div class="bud-head">
+      <h3 class="sec" id="budTitle" style="margin:0">今月の予算</h3>
+      <button type="button" class="ghost sm" id="openBudget">✏️ 予算を設定</button>
+    </div>
+    <div id="budBody"></div>
+  </section>
+
+  <section class="card">
+    <h3 class="sec" id="donutTitle">月間支出の内訳（当月）</h3>
+    <div class="donut-wrap">
+      <div class="donut-box" id="donut"></div>
+      <div class="donut-list" id="donutList"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3 class="sec" id="chartTitle">月間支出・比較分析</h3>
+    <div class="legend" id="legend"></div>
+    <div id="chart"></div>
+  </section>
+
+  <section class="card" id="settleCard">
+    <h3 class="sec" id="settleTitle">夫婦の精算・負担バランス</h3>
+    <div class="settle-hero" id="settleHero"></div>
+    <div class="sum4" id="sum4"></div>
+    <div id="balance"></div>
+  </section>
+
+  <section class="card">
+    <h3 class="sec">カテゴリ設定</h3>
+    <div class="chips" id="chips"></div>
+    <div class="note">バッジをクリックすると、名前と色を編集できます</div>
+    <div class="add-row">
+      <input type="text" id="newCat" placeholder="新しいカテゴリを追加（例：趣味）" maxlength="20" autocomplete="off">
+      <button class="primary" type="button" id="addCat" style="flex:none">追加</button>
+    </div>
+    <div class="color-row" id="colorRow">
+      <label for="newColor">色</label>
+      <input type="color" id="newColor" value="#6366f1">
+    </div>
+  </section>
+  </div>
+
+  <div id="viewYear" hidden>
+    <section class="card">
+      <div class="toolbar"><button type="button" class="ghost sm" id="toCal">◀ カレンダーに戻る</button></div>
+      <div class="month-nav">
+        <button class="nav-btn" id="yPrev" aria-label="前の年">◀</button>
+        <h2 id="yLabel"></h2>
+        <button class="nav-btn" id="yNext" aria-label="次の年">▶</button>
+      </div>
+      <div class="sum4 sum2" id="ySum"></div>
+      <div class="legend" id="yLegend"></div>
+      <div class="note">上段＝2人の負担割合／下段＝固定費・内訳。色にマウスを乗せる（スマホはタップ）と金額が出ます。「◯月 ▸」でその月のカレンダーへ移動します。</div>
+      <div id="yChart"></div>
+    </section>
+
+    <section class="card" id="lineCard">
+      <h3 class="sec" id="lineTitle">費目別の年間推移（折れ線グラフ）</h3>
+      <div class="line-toggles" id="lineToggles"></div>
+      <div class="line-box" id="lineChart"></div>
+      <div class="note" id="lineNote">点にマウスを乗せる（スマホはタップ）と金額が出ます。ボタンで線の表示／非表示を切り替えられます。</div>
+    </section>
+  </div>
+</div>
+
+<!-- 支出入力モーダル -->
+<div class="overlay" id="overlay">
+  <form class="modal" id="form" novalidate>
+    <h3 id="modalTitle"></h3>
+    <div class="ocr-review" id="ocrReview" hidden role="status">🔍 読み取り結果を確認してください（誤りがあれば手動で修正してください）</div>
+    <div class="rc-layout">
+    <aside class="rc-side" id="rcSide" hidden>
+      <img id="sideImg" alt="レシート写真（クリックで拡大）" title="クリック／タップで拡大">
+      <div class="rc-side-hint">🔎 画像をタップ／クリックで拡大して確認</div>
+    </aside>
+    <div class="rc-main">
+    <div class="field">
+      <label for="dateIn">日付</label>
+      <div class="date-row">
+        <input type="text" id="dateIn" inputmode="text" placeholder="YYYY-MM-DD（例: 2026-10-15）" maxlength="12" autocomplete="off">
+        <button type="button" class="ghost sm" id="datePick" aria-label="カレンダーから選ぶ">📅</button>
+        <input type="date" id="datePicker" class="date-picker-hidden" tabindex="-1" aria-hidden="true">
+      </div>
+    </div>
+    <div class="field">
+      <label>使った人</label>
+      <div class="seg" id="whoSeg">
+        <button type="button" class="a on" data-who="夫"></button>
+        <button type="button" class="b" data-who="妻"></button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="amount">金額</label>
+      <div class="amount-wrap">
+        <input type="text" id="amount" inputmode="numeric" pattern="[0-9]*" placeholder="0" autocomplete="off">
+        <span>円</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>カテゴリ</label>
+      <div class="cats" id="catBtns"></div>
+    </div>
+    <div class="field">
+      <label for="storeSel">店名（購入したお店）</label>
+      <div class="store-row">
+        <select id="storeSel"></select>
+        <button type="button" class="ghost sm" id="storeMgr">⚙️ 店名管理</button>
+      </div>
+      <div class="store-suggest" id="storeSuggest" hidden>
+        <span id="storeSuggestTxt"></span>
+        <button type="button" class="ghost sm" id="storeSuggestAdd">＋ 店名リストに追加</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="memo">メモ（任意）</label>
+      <input type="text" id="memo" maxlength="100" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>レシート写真（任意）</label>
+      <div class="photo-row">
+        <button type="button" class="ghost sm" id="photoBtn">📷 レシート写真を添付</button>
+        <button type="button" class="ghost sm" id="photoLibBtn">🖼 選択</button>
+        <span class="photo-prev" id="photoPrev" hidden>
+          <button type="button" class="photo-del" id="photoDel">✕ 写真を削除</button>
+        </span>
+      </div>
+      <input type="file" id="photoFile" accept="image/*" capture="environment" hidden>
+      <input type="file" id="photoLib" accept="image/*" hidden>
+      <div class="ocr-status" id="ocrStatus" hidden role="status" aria-live="polite">
+        <span class="spin" id="ocrSpin"></span>
+        <div class="ocr-txt"><span id="ocrMsg"></span><div class="ocr-bar" id="ocrBarWrap"><i id="ocrBar"></i></div></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>記録する人（登録・更新者）</label>
+      <div class="seg" id="opSeg">
+        <button type="button" class="a on" data-who="夫"></button>
+        <button type="button" class="b" data-who="妻"></button>
+      </div>
+    </div>
+    </div>
+    </div>
+    <p class="hint" id="editHint" hidden style="font-size:12px;color:var(--sub);margin:0 0 10px">※ 取り消したい場合は、金額を「0」に修正して保存してください。</p>
+    <details class="hist" id="histBox" hidden>
+      <summary id="histSum"></summary>
+      <ul id="histList"></ul>
+    </details>
+    <p class="err" id="err"></p>
+    <div class="actions">
+      <button type="button" class="ghost" id="cancel">キャンセル</button>
+      <button type="submit" class="primary" id="saveBtn">この内容で確認・登録する</button>
+    </div>
+  </form>
+</div>
+
+<!-- 更新履歴モーダル -->
+<div class="overlay" id="overlay11">
+  <div class="modal detail" role="dialog" aria-modal="true">
+    <div class="dhead">
+      <h3 id="hmTitle"></h3>
+      <button type="button" class="dclose" id="hmClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="dbody" id="hmBody"></div>
+  </div>
+</div>
+
+<!-- 店名リストの編集モーダル -->
+<div class="overlay" id="overlay10">
+  <div class="modal detail" role="dialog" aria-modal="true">
+    <div class="dhead">
+      <h3>🏪 店名リストの編集</h3>
+      <button type="button" class="dclose" id="storeClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="store-tabs" id="storeTabs" role="tablist" aria-label="カテゴリ"></div>
+    <div class="store-catlabel" id="storeCatLabel"></div>
+    <div class="store-add">
+      <input type="text" id="storeNew" placeholder="新しい店名（例: 業務スーパー）" maxlength="30" autocomplete="off">
+      <button type="button" class="primary" id="storeAddBtn">追加</button>
+    </div>
+    <p class="err" id="storeErr"></p>
+    <div class="dbody"><div id="storeList"></div></div>
+    <div class="note" style="margin-top:8px">削除しても、すでに登録済みの支出の店名は変わりません。</div>
+  </div>
+</div>
+
+<!-- レシートプレビューモーダル -->
+<div class="toast" id="toast" role="alert"></div>
+
+<div class="overlay" id="overlay9">
+  <div class="modal detail rc-modal" role="dialog" aria-modal="true">
+    <div class="dhead">
+      <h3 id="rcTitle">🧾 レシート</h3>
+      <button type="button" class="dclose" id="rcClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="rc-body"><img id="rcImg" alt="レシート写真"></div>
+    <div class="rc-cap" id="rcCap"></div>
+  </div>
+</div>
+
+<!-- 予算設定モーダル -->
+<div class="overlay" id="overlay7">
+  <form class="modal" id="budForm" novalidate>
+    <h3 id="budTitle2">✏️ 月間目標予算の設定</h3>
+    <div class="field">
+      <label for="budInput">この月の目標予算（月ごとに個別に保存されます）</label>
+      <div class="amount-wrap">
+        <input type="text" id="budInput" inputmode="numeric" pattern="[0-9]*" placeholder="例: 250000" autocomplete="off">
+        <span>円</span>
+      </div>
+    </div>
+    <p class="hint" style="font-size:12px;color:var(--sub);margin:0 0 10px">空欄で保存すると「未設定」に戻ります。</p>
+    <p class="err" id="budErr"></p>
+    <div class="actions">
+      <button type="button" class="ghost" id="budCancel">キャンセル</button>
+      <button type="submit" class="primary">保存する</button>
+    </div>
+  </form>
+</div>
+
+<!-- CSV出力モーダル -->
+<div class="overlay" id="overlay6">
+  <div class="modal">
+    <h3>📥 CSV出力</h3>
+    <div class="csv-opt">
+      <button type="button" class="ghost" id="csvMonth"></button>
+      <button type="button" class="ghost" id="csvAll"></button>
+    </div>
+    <p class="hint" style="font-size:12px;color:var(--sub);margin:0 0 10px">Excelで開いても文字化けしないUTF-8形式（BOM付き）で保存されます。</p>
+    <div class="actions"><button type="button" class="ghost" id="csvCancel">閉じる</button></div>
+  </div>
+</div>
+
+<!-- 個人別・月間支出内訳モーダル -->
+<div class="overlay" id="overlay2">
+  <div class="modal detail" role="dialog" aria-modal="true">
+    <div class="dhead">
+      <h3 id="detailTitle"></h3>
+      <button type="button" class="dclose" id="detailClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="dbody" id="detailBody"><div id="detailList"></div></div>
+    <div class="dsum" id="detailSum"></div>
+  </div>
+</div>
+
+<!-- 検索・絞り込みモーダル -->
+<div class="overlay" id="overlay8">
+  <div class="modal detail wide" role="dialog" aria-modal="true">
+    <div class="dhead">
+      <h3 id="srTitle">🔍 支出の検索・明細一覧</h3>
+      <button type="button" class="dclose" id="srClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="sr-filters">
+      <input type="text" id="srKey" placeholder="キーワード（メモ・カテゴリ名）" autocomplete="off" maxlength="50">
+      <div class="sr-grid">
+        <div class="seg" id="srWho">
+          <button type="button" class="on" data-who="">全員</button>
+          <button type="button" class="a" data-who="夫"></button>
+          <button type="button" class="b" data-who="妻"></button>
+        </div>
+        <div class="sr-cat"><i class="catdot" id="srDot" style="background:#ccc"></i><select id="srCat"></select></div>
+        <div class="seg" id="srPeriod">
+          <button type="button" class="on" data-p="month">表示中の月</button>
+          <button type="button" data-p="all">全期間</button>
+        </div>
+        <button type="button" class="ghost" id="srReset">↺ リセット</button>
+      </div>
+    </div>
+    <div class="sr-sum" id="srSum"></div>
+    <div class="dbody" id="srBody"><div id="srList"></div></div>
+  </div>
+</div>
+
+<!-- 基本設定モーダル -->
+<div class="overlay" id="overlay5">
+  <form class="modal" id="setForm" novalidate>
+    <h3>基本設定</h3>
+    <div class="field">
+      <label for="setTitle">アプリタイトル</label>
+      <input type="text" id="setTitle" maxlength="30" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="setM1">メンバー1の名前（青色）</label>
+      <input type="text" id="setM1" maxlength="10" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="setM2">メンバー2の名前（ピンク色）</label>
+      <input type="text" id="setM2" maxlength="10" autocomplete="off">
+    </div>
+    <p class="err" id="setErr"></p>
+    <div class="actions">
+      <button type="button" class="ghost" id="setCancel">キャンセル</button>
+      <button type="submit" class="primary">保存する</button>
+    </div>
+  </form>
+</div>
+
+<!-- 年間推移：費目別明細モーダル -->
+<div class="overlay" id="overlay4">
+  <div class="modal detail" role="dialog" aria-modal="true">
+    <div class="dhead">
+      <h3 id="catTitle"></h3>
+      <button type="button" class="dclose" id="catClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="dbody" id="catBody"><div id="catList"></div></div>
+    <div class="dsum" id="catSum"></div>
+  </div>
+</div>
+
+<!-- カテゴリ編集モーダル -->
+<div class="overlay" id="overlay3">
+  <form class="modal" id="editForm" novalidate>
+    <h3>カテゴリの編集</h3>
+    <div class="field">
+      <label for="editName">カテゴリ名</label>
+      <input type="text" id="editName" maxlength="20" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>色</label>
+      <div class="color-row" id="editColorRow" style="margin-top:0">
+        <input type="color" id="editColor" value="#6366f1" aria-label="色を選ぶ">
+      </div>
+    </div>
+    <div class="field">
+      <label>表示順</label>
+      <div class="actions" style="margin-top:0">
+        <button type="button" class="ghost" id="movePrev">← 前へ移動</button>
+        <button type="button" class="ghost" id="moveNext">後へ移動 →</button>
+      </div>
+    </div>
+    <p class="err" id="editErr"></p>
+    <div class="warn" id="editWarn">
+      <div>⚠ カテゴリ名や色を変更すると、これまでに登録された過去の支出データもすべて新しい内容に自動で更新されます。本当によろしいですか？</div>
+      <div class="actions">
+        <button type="button" class="ghost" id="warnBack">戻る</button>
+        <button type="button" class="primary" id="warnOk">OK（更新する）</button>
+      </div>
+    </div>
+    <div class="actions" id="editActions">
+      <button type="button" class="ghost" id="editCancel">キャンセル</button>
+      <button type="submit" class="primary">保存する</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var KEY = 'kakeibo_v1';
+  var DEFAULT_CATS = ['食費', '外食費', '日用品', '交通費', '固定費', 'その他'];
+
+  // ---------- データ ----------
+  function load() {
+    try {
+      var d = JSON.parse(localStorage.getItem(KEY));
+      if (d && Array.isArray(d.expenses) && Array.isArray(d.categories) && d.categories.length) {
+        if (!d.colors || typeof d.colors !== 'object') d.colors = {};  // 旧データ互換
+        d.expenses = d.expenses.filter(function (x) { return x && typeof x === 'object'; }).map(withMeta);
+        return withSettings(d);
+      }
+    } catch (e) {}
+    return withSettings({ expenses: [], categories: DEFAULT_CATS.slice(), colors: {} });
+  }
+  // 旧データ（メタデータなし）でも落ちないよう初期値を補う
+  function withMeta(x) {
+    if (typeof x.date !== 'string') x.date = '1970-01-01';
+    x.amount = Number(x.amount) || 0;
+    if (typeof x.category !== 'string') x.category = 'その他';
+    if (typeof x.memo !== 'string') x.memo = '';
+    if (x.who !== '妻') x.who = '夫';
+    if (!x.id) x.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    if (typeof x.store !== 'string') x.store = '';   // 店名（旧データは空）
+    if (typeof x.photo !== 'string' || x.photo.indexOf('data:image/') !== 0) x.photo = null;  // レシート写真（Base64）
+    if (typeof x.createdAt !== 'string') x.createdAt = '';
+    if (x.createdBy !== '夫' && x.createdBy !== '妻') x.createdBy = '';
+    if (typeof x.updatedAt !== 'string') x.updatedAt = x.createdAt;
+    if (x.updatedBy !== '夫' && x.updatedBy !== '妻') x.updatedBy = x.createdBy;
+    if (!Array.isArray(x.editHistory)) x.editHistory = [];
+    return x;
+  }
+  function fmtTs(d) {
+    return d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  // 店名マスターの初期プリセット（カテゴリ別）
+  var STORE_PRESETS = {
+    '食費': ['ライフ', 'サミット', 'イオン', '業務スーパー', 'セブン-イレブン', 'ファミリーマート', 'ローソン'],
+    '外食費': ['ココス', 'サイゼリヤ', 'ガスト', '餃子の王将', 'マクドナルド', 'スターバックス'],
+    '日用品': ['クリエイト', 'ウエルシア', 'マツモトキヨシ', 'Seria', 'ダイソー', 'キャンドゥ', 'カインズ'],
+    '交通費': ['JR', '東武鉄道', '東京メトロ', '都営地下鉄', 'バス', 'タクシー'],
+    '固定費': ['家賃', '東京電力', '東京ガス', '水道局', '通信各社'],
+    'その他': ['Amazon', '楽天市場', '郵便局']
+  };
+  var DEFAULT_SETTINGS = { title: 'ふたりの家計簿', m1: '夫', m2: '妻' };
+  function withSettings(d) {
+    var s = d.settings && typeof d.settings === 'object' ? d.settings : {};
+    d.settings = {
+      title: typeof s.title === 'string' && s.title ? s.title : DEFAULT_SETTINGS.title,
+      m1: typeof s.m1 === 'string' && s.m1 ? s.m1 : DEFAULT_SETTINGS.m1,
+      m2: typeof s.m2 === 'string' && s.m2 ? s.m2 : DEFAULT_SETTINGS.m2
+    };
+    // 予算：年月キーごとの個別管理 { 'YYYY-MM': 金額 }
+    var b = {};
+    if (d.budgets && typeof d.budgets === 'object') {
+      Object.keys(d.budgets).forEach(function (k) {
+        var v = Number(d.budgets[k]);
+        if (/^\d{4}-\d{2}$/.test(k) && v > 0) b[k] = Math.floor(v);
+      });
+    }
+    // 旧データ移行：全月共通だった単一予算 → 支出のある年（と今年）の全12か月に個別値として展開
+    var legacy = Number(d.budget);
+    if (legacy > 0 && !d.budgets) {
+      var years = {};
+      years[new Date().getFullYear()] = true;
+      (d.expenses || []).forEach(function (x) { if (x && typeof x.date === 'string') years[x.date.slice(0, 4)] = true; });
+      Object.keys(years).forEach(function (y) {
+        if (!/^\d{4}$/.test(y)) return;
+        for (var m = 1; m <= 12; m++) { var k = y + '-' + (m < 10 ? '0' + m : m); if (!b[k]) b[k] = Math.floor(legacy); }
+      });
+    }
+    d.budgets = b;
+    delete d.budget;
+    // 店名マスター：カテゴリ別 { カテゴリ名: [店名,...] }。
+    //  ・未保存 → プリセット
+    //  ・旧形式（全カテゴリ共通の単一配列）→ プリセットの所属カテゴリへ振り分け（不明は「その他」）。空のカテゴリにはプリセットを補う
+    //  ・新形式 → 整形のみ（削除して空にしたカテゴリは空のまま維持）
+    function cleanName(n) { return typeof n === 'string' ? n.trim().slice(0, 30) : ''; }
+    function nk(s) { return s.toLowerCase().replace(/[\s　\-ー・‐-―]/g, ''); }
+    function presetCopy() { var o = {}; Object.keys(STORE_PRESETS).forEach(function (c) { o[c] = STORE_PRESETS[c].slice(); }); return o; }
+    if (Array.isArray(d.stores)) {
+      var home = {}, out = {};
+      Object.keys(STORE_PRESETS).forEach(function (c) { STORE_PRESETS[c].forEach(function (n) { if (!home[nk(n)]) home[nk(n)] = c; }); });
+      d.stores.forEach(function (n) {
+        n = cleanName(n);
+        if (!n) return;
+        var c = home[nk(n)] || 'その他';
+        if (!out[c]) out[c] = [];
+        if (!out[c].some(function (x) { return nk(x) === nk(n); })) out[c].push(n);
+      });
+      Object.keys(STORE_PRESETS).forEach(function (c) { if (!out[c] || !out[c].length) out[c] = STORE_PRESETS[c].slice(); });
+      d.stores = out;
+    } else if (d.stores && typeof d.stores === 'object') {
+      var clean = {};
+      Object.keys(d.stores).forEach(function (c) {
+        if (!Array.isArray(d.stores[c])) return;
+        var seen = {}, list = [];
+        d.stores[c].forEach(function (n) { n = cleanName(n); if (n && !seen[nk(n)]) { seen[nk(n)] = true; list.push(n); } });
+        clean[c] = list;
+      });
+      d.stores = clean;
+    } else {
+      d.stores = presetCopy();
+    }
+    return d;
+  }
+  // 固定費・インフラ項目（夫負担がデフォルト）
+  var INFRA_COLORS = { '家賃': '#3b5998', '電気代': '#f59e0b', 'ガス代': '#ef4444', '水道代': '#06b6d4', '通信費': '#8b5cf6' };
+  var INFRA_CATS = Object.keys(INFRA_COLORS);
+  var OTHER_COLOR = '#9ca3af';
+  var DEFAULT_COLORS = { '食費': '#10b981', '外食費': '#f59e0b', '日用品': '#38bdf8', '交通費': '#8b5cf6', '固定費': '#fb7185', 'その他': '#9ca3af',
+    '家賃': '#3b5998', '電気代': '#f59e0b', 'ガス代': '#ef4444', '水道代': '#06b6d4', '通信費': '#8b5cf6' };
+  var PRESETS = ['#10b981', '#f59e0b', '#38bdf8', '#8b5cf6', '#fb7185', '#9ca3af', '#ef4444', '#14b8a6', '#84cc16', '#ec4899', '#6366f1', '#a16207'];
+  function colorOf(name) {
+    if (data.colors[name]) return data.colors[name];
+    if (DEFAULT_COLORS[name]) return DEFAULT_COLORS[name];
+    var i = data.categories.indexOf(name);
+    return PRESETS[(i < 0 ? 0 : i) % PRESETS.length];
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(data)); }
+    catch (e) { alert('保存に失敗しました（ブラウザの保存領域が使えません）'); }
+  }
+  var data = load();
+
+  // 固定費・光熱費カテゴリの自動初期化（初回のみ。以後に改名・色変更しても再追加しない）
+  if (!data.infraSeeded) {
+    INFRA_CATS.forEach(function (c) {
+      if (data.categories.indexOf(c) < 0) data.categories.push(c);
+      if (!data.colors[c]) data.colors[c] = INFRA_COLORS[c];
+    });
+    data.infraSeeded = true;
+    save();
+  }
+
+  // ---------- 状態 ----------
+  var today = new Date();
+  var viewYear = today.getFullYear(), viewMonth = today.getMonth();
+  var selected = ymd(today);
+  var form = { who: '夫', category: data.categories[0] };
+
+  // ---------- ユーティリティ ----------
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function yen(n) { return '¥' + n.toLocaleString('ja-JP'); }
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function whoCls(w) { return w === '妻' ? 'b' : 'a'; }
+  // 表示名（内部の識別子は '夫' / '妻' のまま。画面表示だけ置き換える）
+  function nm(w) { return w === '妻' ? data.settings.m2 : data.settings.m1; }
+  function toHalf(s) {
+    return s.replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+            .replace(/[,，、\s]/g, '');
+  }
+  function dayTotals() {
+    var t = {}, month = 0, prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    data.expenses.forEach(function (x) {
+      var s = t[x.date] || (t[x.date] = { 夫: 0, 妻: 0, all: 0 });
+      s[x.who === '妻' ? '妻' : '夫'] += x.amount;
+      s.all += x.amount;
+      if (x.date.indexOf(prefix) === 0) month += x.amount;
+    });
+    return { byDay: t, month: month };
+  }
+
+  // ---------- 日本の祝日（祝日法に基づく計算。外部通信なし） ----------
+  var holidayCache = {};
+  function holidaysOf(y) {
+    if (holidayCache[y]) return holidayCache[y];
+    var map = {};
+    function put(m, d, name) { map[y + '-' + pad(m) + '-' + pad(d)] = name; }
+    function nthMon(m, n) {  // m月の第n月曜日
+      var first = new Date(y, m - 1, 1).getDay();
+      return 1 + ((8 - first) % 7) + (n - 1) * 7;
+    }
+    var k = y - 1980, adj = 0.242194 * k - Math.floor(k / 4);
+    var shunbun = Math.floor(20.8431 + adj);
+    var shuubun = Math.floor(23.2488 + adj);
+
+    put(1, 1, '元日');
+    put(1, nthMon(1, 2), '成人の日');
+    put(2, 11, '建国記念の日');
+    if (y >= 2020) put(2, 23, '天皇誕生日');
+    put(3, shunbun, '春分の日');
+    put(4, 29, '昭和の日');
+    put(5, 3, '憲法記念日');
+    put(5, 4, 'みどりの日');
+    put(5, 5, 'こどもの日');
+    // 海の日・スポーツの日・山の日（2020・2021年は東京五輪特例）
+    if (y === 2020) put(7, 23, '海の日'); else if (y === 2021) put(7, 22, '海の日'); else put(7, nthMon(7, 3), '海の日');
+    if (y === 2020) put(8, 10, '山の日'); else if (y === 2021) put(8, 8, '山の日'); else put(8, 11, '山の日');
+    put(9, nthMon(9, 3), '敬老の日');
+    put(9, shuubun, '秋分の日');
+    if (y === 2020) put(7, 24, 'スポーツの日'); else if (y === 2021) put(7, 23, 'スポーツの日'); else put(10, nthMon(10, 2), 'スポーツの日');
+    put(11, 3, '文化の日');
+    put(11, 23, '勤労感謝の日');
+
+    var base = Object.keys(map);
+    // 国民の休日：前後が祝日に挟まれた平日（日曜でない）
+    for (var m = 0; m < 12; m++) {
+      for (var d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) {
+        var cur = new Date(y, m, d), key = ymd(cur);
+        if (map[key] || cur.getDay() === 0) continue;
+        if (map[ymd(new Date(y, m, d - 1))] && map[ymd(new Date(y, m, d + 1))]) map[key] = '国民の休日';
+      }
+    }
+    // 振替休日：祝日が日曜なら、次の祝日でない日
+    base.sort().forEach(function (key) {
+      var p = key.split('-');
+      var dt = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+      if (dt.getDay() !== 0) return;
+      do { dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1); } while (map[ymd(dt)]);
+      if (dt.getFullYear() === y) map[ymd(dt)] = '振替休日';
+    });
+    holidayCache[y] = map;
+    return map;
+  }
+  function holidayName(key) {
+    var y = Number(key.slice(0, 4));
+    return holidaysOf(y)[key] || '';
+  }
+
+  // ---------- 描画 ----------
+  function renderCalendar() {
+    var tot = dayTotals();
+    $('monthLabel').textContent = viewYear + '年' + (viewMonth + 1) + '月';
+    $('monthTotal').textContent = '今月の合計 ' + yen(tot.month);
+    var grid = $('grid');
+    grid.innerHTML = '';
+    var first = new Date(viewYear, viewMonth, 1).getDay();
+    var days = new Date(viewYear, viewMonth + 1, 0).getDate();
+    var todayKey = ymd(new Date());
+    for (var i = 0; i < first; i++) grid.appendChild(el('div', 'day empty'));
+    for (var d = 1; d <= days; d++) {
+      var key = viewYear + '-' + pad(viewMonth + 1) + '-' + pad(d);
+      var dow = (first + d - 1) % 7;
+      var cls = 'day' + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + (holidayName(key) ? ' hol' : '') +
+        (key === todayKey ? ' today' : '') + (key === selected ? ' selected' : '');
+      var b = el('button', cls);
+      b.type = 'button';
+      b.dataset.date = key;
+      b.appendChild(el('span', 'num', d));
+      var s = tot.byDay[key] || { 夫: 0, 妻: 0, all: 0 };
+      [['a', s['夫']], ['b', s['妻']], ['t', s.all]].forEach(function (r) {
+        b.appendChild(el('span', 'amt ' + r[0], r[1].toLocaleString('ja-JP')));
+      });
+      b.setAttribute('aria-label', Number(d) + '日 ' + nm('夫') + s['夫'] + '円 ' + nm('妻') + s['妻'] + '円 合計' + s.all + '円');
+      grid.appendChild(b);
+    }
+    renderChart();
+    renderSettle();
+  }
+
+  // 「🧾 写真あり」バッジ（クリックでレシート拡大）。写真がなければ null
+  // 店名バッジ（店名があれば「🏪 クリエイト」）
+  function storeBadge(x) {
+    return x.store ? el('span', 'sbadge', '🏪 ' + x.store) : null;
+  }
+  function rcptBadge(x) {
+    if (!x.photo) return null;
+    var b = el('button', 'rcpt', '🧾 写真あり');
+    b.type = 'button'; b.dataset.id = x.id; b.title = 'レシート写真を拡大';
+    return b;
+  }
+  // 「最終更新」バッジ（ボタン風）。履歴あり:「✎ 最終更新: MM/DD HH:mm (誰) [履歴 N件]」／履歴なし:「登録: MM/DD HH:mm (誰)」
+  function shortTs(ts) { return String(ts || '').replace(/^\d{4}\//, ''); }   // 2026/11/07 16:17 → 11/07 16:17
+  function updBadge(x) {
+    var hist = x.editHistory || [], n = hist.length, last = n ? hist[n - 1] : null, text, ts, who;
+    if (n > 0) {
+      ts = x.updatedAt || (last && last.timestamp); who = x.updatedBy || (last && last.updater);
+      text = '✎ 最終更新: ' + shortTs(ts) + (who ? ' (' + nm(who) + ')' : '') + ' [履歴 ' + n + '件]';
+    } else {
+      ts = x.createdAt || x.updatedAt; who = x.createdBy || x.updatedBy;
+      text = ts ? '登録: ' + shortTs(ts) + (who ? ' (' + nm(who) + ')' : '') : '登録: 記録なし';
+    }
+    var b = el('button', 'upd-btn' + (n > 0 ? ' edited' : ''), text);
+    b.type = 'button'; b.dataset.id = x.id; b.setAttribute('aria-label', '更新履歴を見る（' + n + '件）');
+    return b;
+  }
+  function updRow(x) {
+    var row = el('div', 'updrow');
+    row.appendChild(updBadge(x));
+    return row;
+  }
+
+  function renderList() {
+    var p = selected.split('-');
+    var hn = holidayName(selected);
+    var isSun = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay() === 0;
+    $('listTitle').classList.toggle('holiday', !!hn || isSun);
+    $('listTitle').textContent = Number(p[1]) + '月' + Number(p[2]) + '日の支出' + (hn ? '（' + hn + '）' : '');
+    var box = $('list');
+    box.innerHTML = '';
+    var items = data.expenses.filter(function (x) { return x.date === selected; });
+    if (!items.length) { box.appendChild(el('div', 'empty-msg', 'この日の支出はまだありません')); return; }
+    var sum = 0;
+    items.forEach(function (x) {
+      sum += x.amount;
+      var row = el('div', 'item');
+      row.appendChild(el('span', 'badge ' + whoCls(x.who), nm(x.who)));
+      var main = el('div', 'main');
+      var catEl = el('div', 'cat');
+      var dot = el('i', 'catdot');
+      dot.style.background = colorOf(x.category);
+      catEl.appendChild(dot);
+      catEl.appendChild(document.createTextNode(x.category));
+      var sb0 = storeBadge(x); if (sb0) catEl.appendChild(sb0);
+      main.appendChild(catEl);
+      if (x.memo) main.appendChild(el('div', 'memo', x.memo));
+      main.appendChild(updRow(x));
+      var rb = rcptBadge(x); if (rb) main.appendChild(rb);
+      row.appendChild(main);
+      row.appendChild(el('div', 'yen' + (x.amount === 0 ? ' zero' : ''), yen(x.amount)));
+      var ed = el('button', 'edit', '✏️');
+      ed.type = 'button';
+      ed.dataset.id = x.id;
+      ed.setAttribute('aria-label', '編集');
+      row.appendChild(ed);
+      box.appendChild(row);
+    });
+    box.appendChild(el('div', 'day-total', '合計 ' + yen(sum)));
+  }
+
+  // 比較グラフ：表示月 / 前月 / 前年同月 をカテゴリ別に集計
+  // 当月のカテゴリ別ドーナツチャート（SVG）
+  function renderDonut() {
+    var prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    var sums = {}, total = 0;
+    data.expenses.forEach(function (x) {
+      if (x.date.indexOf(prefix) !== 0 || !(x.amount > 0)) return;
+      sums[x.category] = (sums[x.category] || 0) + x.amount;
+      total += x.amount;
+    });
+    var order = data.categories.filter(function (c) { return sums[c] > 0; });
+    Object.keys(sums).forEach(function (c) { if (order.indexOf(c) < 0) order.push(c); });
+    $('donutTitle').textContent = '月間支出の内訳（当月）';
+
+    var NS = 'http://www.w3.org/2000/svg', R = 40, C = 2 * Math.PI * R;
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('role', 'img');
+    var base = document.createElementNS(NS, 'circle');
+    base.setAttribute('cx', 50); base.setAttribute('cy', 50); base.setAttribute('r', R);
+    base.setAttribute('fill', 'none'); base.setAttribute('stroke', '#eef2f1'); base.setAttribute('stroke-width', 16);
+    svg.appendChild(base);
+    var list = $('donutList');
+    list.innerHTML = '';
+    var offset = 0;
+    order.forEach(function (c, i) {
+      var v = sums[c], frac = v / total;
+      var pct = (frac * 100).toFixed(1);
+      var tipText = c + ': ' + yen(v) + ' (' + pct + '%)';
+      var ci = document.createElementNS(NS, 'circle');
+      ci.setAttribute('class', 'slice');
+      ci.setAttribute('cx', 50); ci.setAttribute('cy', 50); ci.setAttribute('r', R);
+      ci.setAttribute('fill', 'none'); ci.setAttribute('stroke', colorOf(c)); ci.setAttribute('stroke-width', 16);
+      ci.setAttribute('stroke-dasharray', (frac * C) + ' ' + C);
+      ci.setAttribute('stroke-dashoffset', -offset);
+      ci.setAttribute('transform', 'rotate(-90 50 50)');
+      ci.dataset.i = i; ci.dataset.tip = tipText;
+      svg.appendChild(ci);
+      offset += frac * C;
+
+      var row = el('div', 'dl-row');
+      row.dataset.i = i;
+      var dot = el('i', 'catdot'); dot.style.background = colorOf(c); dot.style.margin = '0';
+      row.appendChild(dot);
+      row.appendChild(el('span', 'nm', c));
+      row.appendChild(el('span', 'amt', yen(v)));
+      row.appendChild(el('span', 'pct', pct + '%'));
+      list.appendChild(row);
+    });
+    if (!total) list.appendChild(el('div', 'empty-msg', 'この月の支出データはありません'));
+    var box = $('donut');
+    box.innerHTML = '';
+    box.classList.remove('hov');
+    box.appendChild(svg);
+    var ctr = el('div', 'donut-center');
+    ctr.appendChild(el('div', 'k', '当月の支出合計'));
+    ctr.appendChild(el('div', 'v' + (total ? '' : ' zero'), total ? yen(total) : 'データなし'));
+    box.appendChild(ctr);
+  }
+  function donutHover(e) {
+    var s = e.target.closest ? e.target.closest('circle.slice') : null;
+    var box = $('donut');
+    Array.prototype.forEach.call(box.querySelectorAll('.hl'), function (n) { n.classList.remove('hl'); });
+    if (!s) { box.classList.remove('hov'); tip.style.display = 'none'; return; }
+    box.classList.add('hov'); s.classList.add('hl');
+    tip.textContent = s.dataset.tip;
+    tip.style.pointerEvents = 'none'; tip.style.cursor = '';
+    tip.style.display = 'block';
+    var w = tip.offsetWidth;
+    tip.style.left = Math.max(4, Math.min(window.innerWidth - w - 4, e.clientX - w / 2)) + 'px';
+    tip.style.top = Math.max(4, e.clientY - tip.offsetHeight - 12) + 'px';
+  }
+  $('donut').addEventListener('mousemove', donutHover);
+  $('donut').addEventListener('click', donutHover);   // スマホはタップで表示
+  $('donut').addEventListener('mouseleave', function () { donutHover({ target: document.body }); });
+
+  // 月間予算（全月共通。data.budget に保存。0/未設定＝未設定扱い）
+  function renderBudget() {
+    var prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    var spent = 0;
+    data.expenses.forEach(function (x) { if (x.date.indexOf(prefix) === 0 && x.amount > 0) spent += x.amount; });
+    $('budTitle').textContent = (viewMonth + 1) + '月の予算';
+    var body = $('budBody');
+    body.innerHTML = '';
+    var budget = budgetOf(viewYear, viewMonth);
+    if (!budget) {
+      var b = el('button', 'bud-unset', '未設定（クリックして設定）　今月の支出 ' + yen(spent));
+      b.type = 'button'; b.id = 'budUnset';
+      body.appendChild(b);
+      return;
+    }
+    var rate = spent / budget * 100;
+    var cls = rate >= 100 ? 'over' : rate >= 70 ? 'warn' : 'ok';
+    var sum = el('div', 'sum4');
+    [['予算', yen(budget), ''], ['支出', yen(spent), ''], ['消化率', Math.floor(rate) + '%', ''],
+     [spent > budget ? '超過' : '残り', yen(Math.abs(budget - spent)), spent > budget ? 'b' : '']].forEach(function (r) {
+      var c = el('div');
+      c.appendChild(el('div', 'k', r[0]));
+      c.appendChild(el('div', 'v ' + r[2], r[1]));
+      sum.appendChild(c);
+    });
+    body.appendChild(sum);
+    body.appendChild(el('div', 'bud-pct ' + cls, '消化率 ' + Math.floor(rate) + '%'));
+    var track = el('div', 'bud-track');
+    var fill = el('div', 'bud-fill ' + cls);
+    fill.style.width = Math.min(100, rate) + '%';
+    track.appendChild(fill);
+    body.appendChild(track);
+    if (spent > budget) body.appendChild(el('div', 'bud-alert', '⚠ 予算を ' + yen(spent - budget) + ' 超過しています'));
+  }
+  function budgetOf(y, m0) { var v = data.budgets[y + '-' + pad(m0 + 1)]; return v > 0 ? v : 0; }
+  var budTarget = null;  // 設定対象の月 { y, m }（m は 0 始まり）
+  function openBudget(y, m0) {
+    budTarget = (typeof y === 'number') ? { y: y, m: m0 } : { y: viewYear, m: viewMonth };
+    var cur = budgetOf(budTarget.y, budTarget.m);
+    $('budTitle2').textContent = '✏️ ' + budTarget.y + '年' + (budTarget.m + 1) + '月の予算を設定';
+    $('budInput').value = cur ? String(cur) : '';
+    $('budErr').textContent = '';
+    $('overlay7').classList.add('open');
+    setTimeout(function () { $('budInput').focus(); }, 50);
+  }
+  function closeBudget() { $('overlay7').classList.remove('open'); }
+  $('openBudget').addEventListener('click', function () { openBudget(); });
+  $('budBody').addEventListener('click', function (e) { if (e.target.closest('#budUnset')) openBudget(); });
+  $('yChart').addEventListener('click', function (e) {
+    var b = e.target.closest('.bedit');
+    if (b) { hideTip(); openBudget(yearView, Number(b.dataset.month)); }
+  });
+  $('budCancel').addEventListener('click', closeBudget);
+  $('overlay7').addEventListener('click', function (e) { if (e.target === $('overlay7')) closeBudget(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBudget(); });
+  $('budForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var raw = toHalf($('budInput').value).replace(/[,\s円¥]/g, '');
+    if (raw !== '' && !/^\d{1,12}$/.test(raw)) { $('budErr').textContent = '金額は半角数字で入力してください'; return; }
+    var bk = budTarget.y + '-' + pad(budTarget.m + 1);
+    if (raw === '' || Number(raw) <= 0) delete data.budgets[bk]; else data.budgets[bk] = Number(raw);
+    save();
+    closeBudget();
+    renderBudget();
+    if (!$('viewYear').hidden) renderYear();   // 年間の総予算・残額・消化率も即時に再計算
+  });
+
+  function renderChart() {
+    renderBudget();
+    renderDonut();
+    var months = [
+      new Date(viewYear, viewMonth, 1),
+      new Date(viewYear, viewMonth - 1, 1),
+      new Date(viewYear - 1, viewMonth, 1)
+    ];
+    var prefixes = months.map(function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-'; });
+    var names = months.map(function (d) { return d.getFullYear() + '年' + (d.getMonth() + 1) + '月'; });
+    $('chartTitle').textContent = '月間支出・比較分析（' + names[0] + '）';
+
+    var cats = data.categories.slice();
+    var sums = [{}, {}, {}], totals = [0, 0, 0];
+    data.expenses.forEach(function (x) {
+      for (var i = 0; i < 3; i++) {
+        if (x.date.indexOf(prefixes[i]) === 0) {
+          if (cats.indexOf(x.category) < 0) cats.push(x.category);
+          sums[i][x.category] = (sums[i][x.category] || 0) + x.amount;
+          totals[i] += x.amount;
+        }
+      }
+    });
+    var max = Math.max(totals[0], totals[1], totals[2]);
+
+    // 凡例
+    var lg = $('legend');
+    lg.innerHTML = '';
+    cats.forEach(function (c) {
+      var s = el('span', 'lg');
+      var sw = el('i', 'sw');
+      sw.style.background = colorOf(c);
+      s.appendChild(sw);
+      s.appendChild(document.createTextNode(c));
+      lg.appendChild(s);
+    });
+
+    // 3本の積み上げ横棒
+    var box = $('chart');
+    box.innerHTML = '';
+    var labels = ['今月', '前月', '前年同月'];
+    for (var i = 0; i < 3; i++) {
+      var row = el('div', 'crow');
+      var head = el('div', 'cname', labels[i]);
+      head.appendChild(el('span', 'cmonth', names[i]));
+      row.appendChild(head);
+      var bar = el('div', 'bar');
+      var track = el('div', 'track');
+      var stack = el('div', 'stack');
+      stack.style.width = (max ? totals[i] / max * 100 : 0) + '%';
+      cats.forEach(function (c) {
+        var v = sums[this.i][c];
+        if (!v) return;
+        var seg = el('div', 'seg');
+        seg.style.width = (v / this.t * 100) + '%';
+        seg.style.background = colorOf(c);
+        seg.dataset.tip = c + ' ' + yen(v) + '（' + Math.round(v / this.t * 100) + '%）';
+        stack.appendChild(seg);
+      }, { i: i, t: totals[i] });
+      track.appendChild(stack);
+      bar.appendChild(track);
+      bar.appendChild(el('span', 'val' + (totals[i] ? '' : ' zero'), yen(totals[i])));
+      row.appendChild(bar);
+      box.appendChild(row);
+    }
+  }
+
+  // 精算ダッシュボード（表示月が対象）
+  function renderSettle() {
+    var prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    var A = 0, B = 0;
+    data.expenses.forEach(function (x) {
+      if (x.date.indexOf(prefix) !== 0) return;
+      if (x.who === '妻') B += x.amount; else A += x.amount;
+    });
+    var total = A + B, half = total / 2;
+    var mLabel = (viewMonth + 1) + '月';
+    $('settleTitle').textContent = '夫婦の精算・負担バランス（' + viewYear + '年' + mLabel + '）';
+
+    var hero = $('settleHero'), sum = $('sum4'), bal = $('balance');
+    hero.innerHTML = ''; sum.innerHTML = ''; bal.innerHTML = '';
+
+    if (total === 0) {
+      hero.appendChild(el('div', 'msg', 'この月は支出がありません'));
+      return;
+    }
+
+    hero.appendChild(el('div', 'lbl', mLabel + 'の精算'));
+    var msg = el('div', 'msg');
+    if (A === B) {
+      msg.textContent = '精算は不要です（ぴったり折半）';
+    } else {
+      var payer = A > B ? '妻' : '夫', payee = A > B ? '夫' : '妻';
+      var amt = Math.round(Math.abs(A - B) / 2);  // 1円未満は四捨五入
+      var p1 = el('span', 'pill ' + whoCls(payer), nm(payer));
+      var p2 = el('span', 'pill ' + whoCls(payee), nm(payee));
+      msg.appendChild(p1);
+      msg.appendChild(document.createTextNode(' から '));
+      msg.appendChild(p2);
+      msg.appendChild(document.createTextNode(' へ'));
+      msg.appendChild(el('span', 'big', yen(amt)));
+    }
+    hero.appendChild(msg);
+
+    [['総支出', yen(total), '', ''], ['1人あたり（50%）', yen(Math.round(half)), '', ''],
+     [nm('夫') + 'の支払済額', yen(A), 'a', '夫'], [nm('妻') + 'の支払済額', yen(B), 'b', '妻']].forEach(function (r) {
+      var c = el('div');
+      c.appendChild(el('div', 'k', r[0]));
+      c.appendChild(el('div', 'v ' + r[2], r[1]));
+      if (r[3]) {
+        c.className = 'clickable';
+        c.dataset.who = r[3];
+        c.setAttribute('role', 'button');
+        c.tabIndex = 0;
+        c.appendChild(el('div', 'hint', 'クリックで内訳を表示'));
+      }
+      sum.appendChild(c);
+    });
+
+    var wrap = el('div', 'bal');
+    [['夫', 'a', A], ['妻', 'b', B]].forEach(function (r) {
+      var pct = r[2] / total * 100;
+      var brow = el('div', 'brow clickable');
+      brow.dataset.who = r[0];
+      brow.setAttribute('role', 'button');
+      brow.tabIndex = 0;
+      brow.title = 'クリックで' + nm(r[0]) + 'の内訳を表示';
+      var who = el('div', 'who');
+      who.appendChild(el('span', '', nm(r[0]) + '（クリックで内訳を表示）'));
+      who.appendChild(el('span', '', yen(r[2]) + '（' + (Math.round(pct * 10) / 10) + '%）'));
+      brow.appendChild(who);
+      var track = el('div', 'btrack');
+      var fill = el('div', 'bfill ' + r[1]);
+      fill.style.width = pct + '%';
+      track.appendChild(fill);
+      track.appendChild(el('div', 'half'));
+      brow.appendChild(track);
+      wrap.appendChild(brow);
+    });
+    wrap.appendChild(el('div', 'halfnote', '破線 ＝ 50%（折半ライン）'));
+    bal.appendChild(wrap);
+  }
+
+  // ---------- 年間推移ビュー ----------
+  var yearView = today.getFullYear();
+  function renderYear() {
+    var months = [];
+    for (var i = 0; i < 12; i++) months.push([0, 0]);  // [夫, 妻]
+    data.expenses.forEach(function (x) {
+      if (x.date.slice(0, 4) !== String(yearView)) return;
+      var m = Number(x.date.slice(5, 7)) - 1;
+      if (m >= 0 && m < 12) months[m][x.who === '妻' ? 1 : 0] += x.amount;
+    });
+    var totals = months.map(function (v) { return v[0] + v[1]; });
+    var sum = totals.reduce(function (a, b) { return a + b; }, 0);
+    var active = totals.filter(function (t) { return t > 0; }).length;
+    var max = Math.max.apply(null, totals);
+
+    $('yLabel').textContent = yearView + '年';
+    var s = $('ySum');
+    s.innerHTML = '';
+    // 予算（月ごとの個別設定）。年間予算＝設定されている月の予算の合計。
+    // 消化率・残額は「予算が設定されている月」の支出と比較する（未設定月の支出は含めない）
+    var yb = 0, spentB = 0;
+    for (var bi = 0; bi < 12; bi++) {
+      var bv = budgetOf(yearView, bi);
+      if (bv) { yb += bv; spentB += totals[bi]; }
+    }
+    var cards = [['年間総支出', yen(sum), ''], ['月平均（支出のあった月）', yen(active ? Math.round(sum / active) : 0), '']];
+    if (yb) {
+      var yr = spentB / yb * 100;
+      cards.push(['年間消化率（予算 ' + yen(yb) + '）', Math.floor(yr) + '%', yr >= 100 ? 'b' : '']);
+      cards.push([spentB > yb ? '年間予算超過' : '年間予算残額', yen(Math.abs(yb - spentB)), spentB > yb ? 'b' : '']);
+    } else {
+      cards.push(['年間消化率', '未設定', '']);
+      cards.push(['年間予算残額', '未設定', '']);
+    }
+    cards.forEach(function (r) {
+      var c = el('div');
+      c.appendChild(el('div', 'k', r[0]));
+      c.appendChild(el('div', 'v ' + r[2] + (r[1] === '未設定' ? ' unset' : ''), r[1]));
+      s.appendChild(c);
+    });
+
+    // 固定費・インフラ項目の月別内訳（それ以外は「その他」にまとめる）
+    var infraOrder = INFRA_CATS.slice().sort(function (a, b) {
+      var ia = data.categories.indexOf(a), ib = data.categories.indexOf(b);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+    });
+    var infra = infraOrder.map(function (c) { return { name: c, color: colorOf(c) }; });
+    var OTHER = 'その他';
+    var infraSums = months.map(function () { return {}; });
+    data.expenses.forEach(function (x) {
+      if (x.date.slice(0, 4) !== String(yearView)) return;
+      var m = Number(x.date.slice(5, 7)) - 1;
+      if (m < 0 || m > 11) return;
+      var key = INFRA_CATS.indexOf(x.category) >= 0 ? x.category : OTHER;
+      infraSums[m][key] = (infraSums[m][key] || 0) + x.amount;
+    });
+
+    // 凡例
+    var lg = $('yLegend');
+    lg.innerHTML = '';
+    [[nm('夫'), 'var(--a)'], [nm('妻'), 'var(--b)']].concat(infra.map(function (c) { return [c.name, c.color]; }))
+      .concat([['その他', OTHER_COLOR]]).forEach(function (r) {
+        var s = el('span', 'lg');
+        var sw = el('i', 'sw');
+        sw.style.background = r[1];
+        s.appendChild(sw);
+        s.appendChild(document.createTextNode(r[0]));
+        lg.appendChild(s);
+      });
+
+    function makeBar(parts, t, scale, clickMonth) {
+      var track = el('div', 'track');
+      var stack = el('div', 'stack');
+      stack.style.width = (scale ? t / scale * 100 : 0) + '%';
+      parts.forEach(function (p) {
+        if (!p[1]) return;
+        var seg = el('div', 'seg');
+        seg.style.width = (p[1] / t * 100) + '%';
+        seg.style.background = p[2];
+        seg.dataset.tip = p[0] + '：' + yen(p[1]) + (clickMonth != null ? '（クリックで明細）' : '');
+        if (clickMonth != null) {
+          seg.dataset.month = clickMonth;
+          seg.dataset.cat = p[0];
+          seg.classList.add('clk');
+        }
+        stack.appendChild(seg);
+      });
+      track.appendChild(stack);
+      return track;
+    }
+
+    var box = $('yChart');
+    box.innerHTML = '';
+    var nowKey = today.getFullYear() + '-' + today.getMonth();
+    months.forEach(function (v, i) {
+      var t = totals[i];
+      var blk = el('div', 'mblock');
+      var jump = el('button', 'mjump' + (nowKey === yearView + '-' + i ? ' cur' : ''), (i + 1) + '月 ▸');
+      jump.type = 'button';
+      jump.dataset.month = i;
+      jump.title = (i + 1) + '月のカレンダーを開く';
+      blk.appendChild(jump);
+
+      var r1 = el('div', 'mline');
+      r1.appendChild(el('span', 'tag', '割合'));
+      r1.appendChild(makeBar([[nm('夫'), v[0], 'var(--a)'], [nm('妻'), v[1], 'var(--b)']], t, max));
+      r1.appendChild(el('span', 'tot' + (t ? '' : ' zero'), yen(t)));
+      blk.appendChild(r1);
+
+      var r2 = el('div', 'mline');
+      r2.appendChild(el('span', 'tag', '内訳'));
+      var parts = infra.map(function (c) { return [c.name, infraSums[i][c.name] || 0, c.color]; });
+      parts.push([OTHER, infraSums[i][OTHER] || 0, OTHER_COLOR]);
+      r2.appendChild(makeBar(parts, t, max, i));
+      r2.appendChild(el('span', 'tot', ''));
+      blk.appendChild(r2);
+
+      // ③ 予算：目標予算に対する消化状況
+      var r3 = el('div', 'mline');
+      r3.appendChild(el('span', 'tag', '予算'));
+      var btrack = el('div', 'track');
+      var budget = budgetOf(yearView, i);
+      var tcell = el('button', 'tot zero bedit unset');
+      tcell.type = 'button';
+      tcell.dataset.month = i;
+      tcell.title = (i + 1) + '月の予算を設定';
+      tcell.appendChild(el('span', '', '未設定'));
+      tcell.appendChild(el('small', '', '（クリックして設定）'));
+      if (budget) {
+        var rate = t / budget * 100, bc = rate >= 100 ? 'over' : rate >= 70 ? 'warn' : 'ok';
+        var tipTxt = '予算: ' + yen(budget) + ' / 実績: ' + yen(t) + ' / 消化率: ' + Math.floor(rate) + '% / ' +
+          (t > budget ? '超過: ' + yen(t - budget) : '残り: ' + yen(budget - t));
+        var bstack = el('div', 'stack');
+        var seg1 = el('div', 'seg bseg ' + bc);
+        seg1.dataset.tip = tipTxt;
+        if (t > budget) {
+          seg1.style.width = (budget / t * 100) + '%';   // 予算内の部分
+          var seg2 = el('div', 'seg bseg over-x');        // 超過分を強調
+          seg2.style.width = ((t - budget) / t * 100) + '%';
+          seg2.dataset.tip = tipTxt;
+          bstack.appendChild(seg1); bstack.appendChild(seg2);
+        } else {
+          seg1.style.width = Math.min(100, rate) + '%';
+          bstack.appendChild(seg1);
+        }
+        bstack.style.width = '100%';
+        btrack.appendChild(bstack);
+        tcell = el('button', 'tot btot bedit ' + bc);
+        tcell.type = 'button';
+        tcell.dataset.month = i;
+        tcell.appendChild(el('span', 'bamt', yen(budget) + ' / '));
+        tcell.appendChild(document.createTextNode(Math.floor(rate) + '%'));
+        tcell.appendChild(el('i', 'pen', '✏️'));
+        tcell.title = '消化率 ' + Math.floor(rate) + '%（' + (t > budget ? '超過 ' + yen(t - budget) : '残 ' + yen(budget - t)) + ' / 予算 ' + yen(budget) + '）クリックで' + (i + 1) + '月の予算を変更';
+      } else {
+        var es = el('div', 'seg bseg none');  // 空バー（ホバーで「未設定」）
+        es.style.width = '100%';
+        es.dataset.tip = '予算: 未設定';
+        var st = el('div', 'stack'); st.style.width = '100%'; st.appendChild(es);
+        btrack.appendChild(st);
+      }
+      r3.appendChild(btrack);
+      r3.appendChild(tcell);
+      blk.appendChild(r3);
+      box.appendChild(blk);
+    });
+    renderLines();
+  }
+  // ---------- 費目別の年間推移（折れ線グラフ・SVG） ----------
+  var lineOff = {};   // 非表示にしたカテゴリ名 { name: true }
+  function lineCats() {
+    var names = data.categories.slice();
+    data.expenses.forEach(function (x) { if (x.date.slice(0, 4) === String(yearView) && names.indexOf(x.category) < 0) names.push(x.category); });
+    return names;
+  }
+  function shortYen(n) {
+    if (n >= 100000000) return '¥' + (Math.round(n / 1000000) / 100) + '億';
+    if (n >= 10000) return '¥' + (Math.round(n / 1000) / 10) + '万';
+    return '¥' + n;
+  }
+  function renderLineToggles() {
+    var box = $('lineToggles');
+    box.innerHTML = '';
+    var cats = lineCats();
+    cats.forEach(function (c) {
+      var b = el('button', 'ltog' + (lineOff[c] ? ' off' : ''));
+      b.type = 'button'; b.dataset.cat = c;
+      b.setAttribute('aria-pressed', lineOff[c] ? 'false' : 'true');
+      var dot = el('i'); dot.style.background = colorOf(c);
+      b.appendChild(dot); b.appendChild(document.createTextNode(c));
+      box.appendChild(b);
+    });
+    box.appendChild(el('span', 'sp'));
+    var a = el('button', 'lbulk', '全選択'); a.type = 'button'; a.dataset.bulk = 'on';
+    var n = el('button', 'lbulk', '全解除'); n.type = 'button'; n.dataset.bulk = 'off';
+    box.appendChild(a); box.appendChild(n);
+  }
+  function renderLineChart() {
+    var box = $('lineChart');
+    box.innerHTML = '';
+    var cats = lineCats().filter(function (c) { return !lineOff[c]; });
+    var sums = {};
+    lineCats().forEach(function (c) { sums[c] = []; for (var i = 0; i < 12; i++) sums[c].push(0); });
+    data.expenses.forEach(function (x) {
+      if (x.date.slice(0, 4) !== String(yearView) || !(x.amount > 0)) return;
+      var m = Number(x.date.slice(5, 7)) - 1;
+      if (m >= 0 && m < 12 && sums[x.category]) sums[x.category][m] += x.amount;
+    });
+    if (!cats.length) { box.appendChild(el('div', 'empty-msg', '表示する項目を選択してください')); return; }
+    var max = 0;
+    cats.forEach(function (c) { sums[c].forEach(function (v) { if (v > max) max = v; }); });
+    // きりのよい上限と目盛り
+    var step = 1000, steps = [1, 2, 2.5, 5, 10];
+    if (max > 0) {
+      var raw = max / 4, pow = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+      for (var si = 0; si < steps.length; si++) { step = steps[si] * pow; if (step >= raw) break; }
+    }
+    var ticks = Math.max(1, Math.ceil(max / step)), top = ticks * step;
+    var W = Math.max(280, box.clientWidth || 600), H = 260;
+    var padL = 46, padR = 12, padT = 12, padB = 26;
+    var pw = W - padL - padR, ph = H - padT - padB;
+    var NS = 'http://www.w3.org/2000/svg';
+    function mk(tag, attrs) { var n = document.createElementNS(NS, tag); Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); }); return n; }
+    var svg = mk('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, role: 'img' });
+    function X(i) { return padL + pw * (i + 0.5) / 12; }
+    function Y(v) { return padT + ph - ph * v / top; }
+    for (var t = 0; t <= ticks; t++) {
+      var yy = Y(t * step);
+      svg.appendChild(mk('line', { x1: padL, x2: W - padR, y1: yy, y2: yy, stroke: t ? '#e6ecea' : '#c9d4d1', 'stroke-width': 1 }));
+      var lb = mk('text', { x: padL - 6, y: yy + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#7a8b87' });
+      lb.textContent = shortYen(t * step);
+      svg.appendChild(lb);
+    }
+    for (var i = 0; i < 12; i++) {
+      var tx = mk('text', { x: X(i), y: H - 8, 'text-anchor': 'middle', 'font-size': 10, fill: '#7a8b87' });
+      tx.textContent = W < 420 ? String(i + 1) : (i + 1) + '月';
+      svg.appendChild(tx);
+    }
+    cats.forEach(function (c) {
+      var col = colorOf(c), pts = sums[c].map(function (v, i) { return X(i).toFixed(1) + ',' + Y(v).toFixed(1); });
+      svg.appendChild(mk('polyline', { points: pts.join(' '), fill: 'none', stroke: col, 'stroke-width': 2.2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    });
+    cats.forEach(function (c) {
+      var col = colorOf(c);
+      sums[c].forEach(function (v, i) {
+        var tipText = (i + 1) + '月 【' + c + '】: ' + yen(v);
+        svg.appendChild(mk('circle', { cx: X(i), cy: Y(v), r: 3.5, fill: '#fff', stroke: col, 'stroke-width': 2 }));
+        var h = mk('circle', { cx: X(i), cy: Y(v), r: 9, class: 'hit' });
+        h.dataset.tip = tipText;
+        svg.appendChild(h);
+      });
+    });
+    box.appendChild(svg);
+  }
+  function renderLines() {
+    $('lineTitle').textContent = '費目別の年間推移（折れ線グラフ）― ' + yearView + '年';
+    renderLineToggles();
+    renderLineChart();
+  }
+  $('lineToggles').addEventListener('click', function (e) {
+    var b = e.target.closest('.ltog'), bulk = e.target.closest('.lbulk');
+    if (b) { lineOff[b.dataset.cat] = !lineOff[b.dataset.cat]; }
+    else if (bulk) {
+      lineCats().forEach(function (c) { if (bulk.dataset.bulk === 'on') delete lineOff[c]; else lineOff[c] = true; });
+    } else return;
+    renderLines();
+  });
+  function lineHover(e) {
+    var s = e.target.closest ? e.target.closest('circle.hit') : null;
+    if (!s) { tip.style.display = 'none'; return; }
+    tip.textContent = s.dataset.tip;
+    tip.style.pointerEvents = 'none'; tip.style.cursor = '';
+    tip.style.display = 'block';
+    var w = tip.offsetWidth;
+    tip.style.left = Math.max(4, Math.min(window.innerWidth - w - 4, e.clientX - w / 2)) + 'px';
+    tip.style.top = Math.max(4, e.clientY - tip.offsetHeight - 12) + 'px';
+  }
+  $('lineChart').addEventListener('mousemove', lineHover);
+  $('lineChart').addEventListener('click', lineHover);   // スマホはタップ
+  $('lineChart').addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+  window.addEventListener('resize', function () { if (!$('viewYear').hidden) renderLineChart(); });
+
+  function showYear() {
+    yearView = viewYear;
+    $('viewCal').hidden = true;
+    $('viewYear').hidden = false;
+    hideTip();
+    renderYear();
+    window.scrollTo(0, 0);
+  }
+  function showCal() {
+    $('viewYear').hidden = true;
+    $('viewCal').hidden = false;
+  }
+  $('toYear').addEventListener('click', showYear);
+  $('toCal').addEventListener('click', showCal);
+  $('yPrev').addEventListener('click', function () { yearView--; renderYear(); });
+  $('yNext').addEventListener('click', function () { yearView++; renderYear(); });
+  $('yChart').addEventListener('mouseover', function (e) {
+    var s = e.target.closest('.seg');
+    if (s) showTip(s); else hideTip();
+  });
+  $('yChart').addEventListener('mouseleave', hideTipSoon);
+  $('yChart').addEventListener('click', function (e) {
+    var s = e.target.closest('.seg');
+    if (s && s.dataset.cat) { openCatDetail(Number(s.dataset.month), s.dataset.cat); return; }
+    if (s) { showTip(s); return; }
+    var r = e.target.closest('.mjump');
+    if (!r) { hideTip(); return; }
+    viewYear = yearView;
+    viewMonth = Number(r.dataset.month);
+    var prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    if (selected.indexOf(prefix) !== 0) selected = prefix + '01';
+    showCal();
+    renderAll();
+    window.scrollTo(0, 0);
+  });
+
+  // ---------- 基本設定（タイトル・メンバー名） ----------
+  function applyNames() {
+    var s = data.settings, h = $('appTitle'), t = s.title, key = '家計簿';
+    h.innerHTML = '';
+    if (t.length > key.length && t.slice(-key.length) === key) {
+      h.appendChild(document.createTextNode(t.slice(0, -key.length)));
+      h.appendChild(el('span', '', key));
+    } else {
+      h.textContent = t;
+    }
+    document.title = t;
+    [$('whoSeg'), $('opSeg')].forEach(function (seg) {
+      Array.prototype.forEach.call(seg.children, function (b) { b.textContent = nm(b.dataset.who); });
+    });
+    renderAll();
+    if (!$('viewYear').hidden) renderYear();
+  }
+  function openSettings() {
+    $('setTitle').value = data.settings.title;
+    $('setM1').value = data.settings.m1;
+    $('setM2').value = data.settings.m2;
+    $('setErr').textContent = '';
+    $('overlay5').classList.add('open');
+    setTimeout(function () { $('setTitle').focus(); }, 50);
+  }
+  function closeSettings() {
+    $('overlay5').classList.remove('open');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+  $('openSettings').addEventListener('click', openSettings);
+  $('setCancel').addEventListener('click', closeSettings);
+  $('overlay5').addEventListener('click', function (e) { if (e.target === $('overlay5')) closeSettings(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSettings(); });
+  $('setForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var t = $('setTitle').value.trim(), a = $('setM1').value.trim(), b = $('setM2').value.trim();
+    if (!t || !a || !b) { $('setErr').textContent = 'タイトルと2人の名前をすべて入力してください'; return; }
+    if (a === b) { $('setErr').textContent = '2人の名前は別々にしてください'; return; }
+    data.settings = { title: t, m1: a, m2: b };
+    save();
+    closeSettings();
+    applyNames();
+  });
+
+  // ---------- 個人別・月間支出内訳モーダル ----------
+  function openDetail(who) {
+    var prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    var items = data.expenses.filter(function (x) {
+      return x.date.indexOf(prefix) === 0 && (x.who === '妻' ? '妻' : '夫') === who;
+    }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+
+    $('detailTitle').textContent = nm(who) + 'の支出内訳（' + viewYear + '年' + (viewMonth + 1) + '月）';
+    $('detailTitle').className = who === '妻' ? 'b' : 'a';
+    var list = $('detailList');
+    list.innerHTML = '';
+    var sum = 0;
+    if (!items.length) {
+      list.appendChild(el('div', 'empty-msg', 'この月の登録データはありません'));
+    }
+    items.forEach(function (x) {
+      sum += x.amount;
+      var row = el('div', 'drow');
+      row.appendChild(el('div', 'dday', Number(x.date.slice(8)) + '日'));
+      var mid = el('div', 'dmid');
+      var cat = el('span', 'cbadge', x.category);
+      cat.style.background = colorOf(x.category);
+      mid.appendChild(cat);
+      var sb1 = storeBadge(x); if (sb1) mid.appendChild(sb1);
+      if (x.memo) mid.appendChild(el('div', 'memo', x.memo));
+      mid.appendChild(updRow(x));
+      var rb = rcptBadge(x); if (rb) mid.appendChild(rb);
+      row.appendChild(mid);
+      row.appendChild(el('div', 'yen', yen(x.amount)));
+      list.appendChild(row);
+    });
+    $('detailSum').textContent = '計 ' + items.length + '件 / ' + yen(sum);
+    $('overlay2').classList.add('open');
+    $('detailBody').scrollTop = 0;
+  }
+  function closeDetail() { $('overlay2').classList.remove('open'); }
+  $('settleCard').addEventListener('click', function (e) {
+    var t = e.target.closest('.clickable[data-who]');
+    if (t) openDetail(t.dataset.who);
+  });
+  $('settleCard').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var t = e.target.closest('.clickable[data-who]');
+    if (t) { e.preventDefault(); openDetail(t.dataset.who); }
+  });
+  $('detailClose').addEventListener('click', closeDetail);
+  $('overlay2').addEventListener('click', function (e) { if (e.target === $('overlay2')) closeDetail(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDetail(); });
+
+  // ツールチップ（ホバー／タップ）
+  var tip = el('div', 'tip');
+  document.body.appendChild(tip);
+  var tipSeg = null, tipTimer = null;
+  function showTip(seg) {
+    clearTimeout(tipTimer);
+    tipSeg = seg;
+    tip.textContent = seg.dataset.tip;
+    // 年間推移の内訳バーのツールチップはクリックで明細を開ける
+    var clk = !!seg.dataset.cat;
+    tip.style.pointerEvents = clk ? 'auto' : 'none';
+    tip.style.cursor = clk ? 'pointer' : '';
+    tip.style.display = 'block';
+    var r = seg.getBoundingClientRect();
+    var w = tip.offsetWidth;
+    var x = Math.max(4, Math.min(window.innerWidth - w - 4, r.left + r.width / 2 - w / 2));
+    tip.style.left = x + 'px';
+    tip.style.top = Math.max(4, r.top - tip.offsetHeight - 2) + 'px';
+  }
+  function hideTip() { clearTimeout(tipTimer); tip.style.display = 'none'; tipSeg = null; }
+  function hideTipSoon() { clearTimeout(tipTimer); tipTimer = setTimeout(hideTip, 250); }  // 吹き出しへ移動する猶予
+  tip.addEventListener('mouseenter', function () { clearTimeout(tipTimer); });
+  tip.addEventListener('mouseleave', hideTip);
+  tip.addEventListener('click', function () {
+    if (tipSeg && tipSeg.dataset.cat) openCatDetail(Number(tipSeg.dataset.month), tipSeg.dataset.cat);
+  });
+
+  // 年間推移：月×費目の明細モーダル
+  function openCatDetail(m, cat) {
+    var prefix = yearView + '-' + pad(m + 1) + '-';
+    var items = data.expenses.filter(function (x) {
+      if (x.date.indexOf(prefix) !== 0) return false;
+      return cat === 'その他' ? INFRA_CATS.indexOf(x.category) < 0 : x.category === cat;
+    }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    var sum = items.reduce(function (s, x) { return s + x.amount; }, 0);
+    hideTip();
+    $('catTitle').textContent = yearView + '年' + (m + 1) + '月 【' + cat + '】の支出明細（計 ' + yen(sum) + '）';
+    var list = $('catList');
+    list.innerHTML = '';
+    if (!items.length) list.appendChild(el('div', 'empty-msg', 'この月の登録データはありません'));
+    items.forEach(function (x) {
+      var row = el('div', 'drow');
+      row.appendChild(el('div', 'dday cdate', Number(x.date.slice(5, 7)) + '月' + Number(x.date.slice(8)) + '日'));
+      var mid = el('div', 'dmid');
+      var who = x.who === '妻' ? '妻' : '夫';
+      mid.appendChild(el('span', 'badge ' + whoCls(who), nm(who)));
+      if (cat === 'その他') {
+        var cb = el('span', 'cbadge', x.category);
+        cb.style.background = colorOf(x.category);
+        cb.style.marginLeft = '6px';
+        mid.appendChild(cb);
+      }
+      var sb2 = storeBadge(x); if (sb2) mid.appendChild(sb2);
+      if (x.memo) mid.appendChild(el('div', 'memo', x.memo));
+      mid.appendChild(updRow(x));
+      var rb = rcptBadge(x); if (rb) mid.appendChild(rb);
+      row.appendChild(mid);
+      row.appendChild(el('div', 'yen', yen(x.amount)));
+      list.appendChild(row);
+    });
+    $('catSum').textContent = '計 ' + items.length + '件 / ' + yen(sum);
+    $('overlay4').classList.add('open');
+    $('catBody').scrollTop = 0;
+  }
+  function closeCatDetail() { $('overlay4').classList.remove('open'); }
+  $('catClose').addEventListener('click', closeCatDetail);
+  $('overlay4').addEventListener('click', function (e) { if (e.target === $('overlay4')) closeCatDetail(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCatDetail(); });
+  $('chart').addEventListener('mouseover', function (e) {
+    var s = e.target.closest('.seg');
+    if (s) showTip(s); else hideTip();
+  });
+  $('chart').addEventListener('mouseleave', hideTip);
+  $('chart').addEventListener('click', function (e) {
+    var s = e.target.closest('.seg');
+    if (s) showTip(s); else hideTip();
+  });
+  document.addEventListener('click', function (e) { if (!e.target.closest('#chart, #yChart, #donut, #lineChart')) hideTip(); });
+  window.addEventListener('scroll', hideTip, true);
+
+  function renderCategories() {
+    renderChart();
+    var chips = $('chips');
+    chips.innerHTML = '';
+    data.categories.forEach(function (c) {
+      var chip = el('button', 'chip editable');
+      chip.type = 'button';
+      chip.dataset.cat = c;
+      chip.title = 'クリックで編集 / ドラッグで並び替え';
+      chip.draggable = true;
+      chip.setAttribute('draggable', 'true');
+      var dot = el('i', 'catdot');
+      dot.style.background = colorOf(c);
+      chip.appendChild(dot);
+      chip.appendChild(document.createTextNode(c));
+      chips.appendChild(chip);
+    });
+  }
+
+  function renderModalCats() {
+    var box = $('catBtns');
+    box.innerHTML = '';
+    if (data.categories.indexOf(form.category) < 0) form.category = data.categories[0];
+    data.categories.forEach(function (c) {
+      var b = el('button', c === form.category ? 'on' : '', c);
+      b.type = 'button';
+      b.dataset.cat = c;
+      box.appendChild(b);
+    });
+  }
+
+  function renderAll() { renderCalendar(); renderList(); renderCategories(); }
+
+  // ---------- モーダル ----------
+  function setWho(w) {
+    form.who = w;
+    Array.prototype.forEach.call($('whoSeg').children, function (b) {
+      b.classList.toggle('on', b.dataset.who === w);
+    });
+  }
+  // ---------- レシート写真 ----------
+  var formPhoto = null;   // 入力モーダルで保持中の写真（data URL）または null
+  function setPhoto(p) {
+    formPhoto = p || null;
+    $('photoPrev').hidden = !formPhoto;
+    $('rcSide').hidden = !formPhoto;                        // 写真があれば画像とフォームを見比べられる配置にする
+    $('form').classList.toggle('has-photo', !!formPhoto);
+    if (formPhoto) $('sideImg').src = formPhoto; else $('sideImg').removeAttribute('src');
+    $('photoBtn').textContent = formPhoto ? '📷 撮り直す' : '📷 レシート写真を添付';
+    if (!formPhoto) clearReview();
+  }
+  // 読み取り結果の確認バー・自動入力欄のハイライトを消す
+  function clearReview() {
+    $('ocrReview').hidden = true;
+    ['amount', 'dateIn', 'memo', 'storeSel'].forEach(function (id) { $(id).classList.remove('ocr-filled'); });
+    Array.prototype.forEach.call($('catBtns').querySelectorAll('.ocr-pick'), function (b) { b.classList.remove('ocr-pick'); });
+  }
+  ['amount', 'dateIn', 'memo'].forEach(function (id) {   // 手で直した欄はハイライトを外す
+    $(id).addEventListener('input', function () { this.classList.remove('ocr-filled'); });
+  });
+  // 金額欄はタップ／フォーカスで全選択し、数字の打ち直しを素早くできるようにする
+  $('amount').addEventListener('focus', function () { var el_ = this; setTimeout(function () { el_.select(); }, 0); });
+  $('amount').addEventListener('mouseup', function (e) { e.preventDefault(); });
+  // 長辺800px・JPEG品質0.7に縮小して data URL にする
+  function compressImage(file, cb) {
+    var rd = new FileReader();
+    rd.onerror = function () { cb(null); };
+    rd.onload = function () {
+      var img = new Image();
+      img.onerror = function () { cb(null); };
+      img.onload = function () {
+        var MAX = 800, w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) { cb(null); return; }
+        var s = Math.min(1, MAX / Math.max(w, h));
+        var cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(w * s)); cv.height = Math.max(1, Math.round(h * s));
+        var ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);   // 透過PNG対策
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        try { cb(cv.toDataURL('image/jpeg', 0.7)); } catch (e) { cb(null); }
+      };
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(file);
+  }
+  function onPhotoPicked(inp) {
+    var f = inp.files && inp.files[0];
+    inp.value = '';   // 同じファイルを続けて選べるように
+    if (!f) return;
+    if (f.type && f.type.indexOf('image/') !== 0) { $('err').textContent = '画像ファイルを選んでください'; return; }
+    compressImage(f, function (url) {
+      if (!url) { $('err').textContent = '画像を読み込めませんでした（別の形式でお試しください）'; return; }
+      $('err').textContent = '';
+      setPhoto(url);
+      runOcr(f);   // 添付した瞬間に自動解析（認識用に元画像から別途、高解像度・二値化の画像を作る）
+    });
+  }
+  $('photoBtn').addEventListener('click', function () { $('photoFile').click(); });
+  $('photoLibBtn').addEventListener('click', function () { $('photoLib').click(); });
+  $('photoFile').addEventListener('change', function () { onPhotoPicked(this); });
+  $('photoLib').addEventListener('change', function () { onPhotoPicked(this); });
+  $('photoDel').addEventListener('click', function () { setPhoto(null); });
+  $('sideImg').addEventListener('click', function () { if (formPhoto) openReceipt(null, formPhoto); });
+  $('rcImg').addEventListener('click', function () { this.classList.toggle('zoomed'); });   // プレビュー内：タップで拡大／縮小（ピンチも可）
+
+  // レシートプレビュー
+  function openReceipt(id, src) {
+    var x = id ? findExp(id) : null;
+    var url = src || (x && x.photo);
+    if (!url) return;
+    $('rcImg').classList.remove('zoomed');
+    $('rcImg').src = url;
+    $('rcCap').textContent = x ? x.date.replace(/-/g, '/') + '　' + x.category + '　' + yen(x.amount) + (x.memo ? '　' + x.memo : '') : 'プレビュー';
+    $('overlay9').classList.add('open');
+  }
+  function closeReceipt() { $('overlay9').classList.remove('open'); $('rcImg').removeAttribute('src'); }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.rcpt[data-id]');
+    if (b) { e.stopPropagation(); openReceipt(b.dataset.id); }
+  });
+  $('rcClose').addEventListener('click', closeReceipt);
+  $('overlay9').addEventListener('click', function (e) { if (e.target === $('overlay9')) closeReceipt(); });
+  // Esc：プレビューが開いているときは、それだけを閉じる（下のモーダルは残す）
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('overlay9').classList.contains('open')) { closeReceipt(); e.stopImmediatePropagation(); e.preventDefault(); }
+  }, true);
+
+  // ---------- 更新履歴（ホバーの吹き出し／クリックのモーダルで共通）----------
+  function historyTitle(x) {
+    return '【' + (x.store || x.category) + '】の更新履歴（計' + (x.editHistory ? x.editHistory.length : 0) + '件）';
+  }
+  // 履歴の中身を box に描画。limit があれば新しい方から limit 件だけ表示する
+  function fillHistory(box, x, limit) {
+    var hist = x.editHistory || [];
+    var first = el('div', 'hm-first');
+    first.appendChild(el('b', '', '初回登録'));
+    var line = el('div', '');
+    line.appendChild(document.createTextNode((x.createdAt || '記録なし') + '　'));
+    if (x.createdBy) line.appendChild(el('span', 'badge ' + whoCls(x.createdBy), nm(x.createdBy)));
+    first.appendChild(line);
+    box.appendChild(first);
+    if (!hist.length) { box.appendChild(el('div', 'empty-msg', 'まだ更新はありません')); return; }
+    var start = limit && hist.length > limit ? hist.length - limit : 0;
+    if (start > 0) box.appendChild(el('div', 'hm-more', '… 以前の ' + start + ' 件は、クリックで全件表示'));
+    hist.forEach(function (h, i) {   // 時系列（古い順）
+      if (i < start) return;
+      var row = el('div', 'hm-item');
+      row.appendChild(el('div', 'hm-no', String(i + 1)));
+      var main = el('div', 'hm-main');
+      var when = el('div', 'hm-when', (h.timestamp || '日時不明') + '　');
+      if (h.updater) when.appendChild(el('span', 'badge ' + whoCls(h.updater), nm(h.updater)));
+      main.appendChild(when);
+      var ul = document.createElement('ul');
+      String(h.summary || '内容の記録なし').split(' / ').forEach(function (t) { ul.appendChild(el('li', '', t.replace('→', ' → '))); });
+      main.appendChild(ul);
+      row.appendChild(main);
+      box.appendChild(row);
+    });
+  }
+  function openHistory(id) {
+    var x = findExp(id);
+    if (!x) return;
+    $('hmTitle').textContent = historyTitle(x);
+    var body = $('hmBody');
+    body.innerHTML = '';
+    fillHistory(body, x, 0);
+    $('overlay11').classList.add('open');
+    body.scrollTop = 0;
+  }
+  function closeHistory() { $('overlay11').classList.remove('open'); }
+
+  // ホバー用の吹き出し（バッジの直上、収まらなければ直下。左右・上下とも画面内に収める）
+  var histPop = el('div', 'hist-pop');
+  document.body.appendChild(histPop);
+  function hideHistPop() { histPop.classList.remove('show'); }
+  function showHistPop(btn) {
+    if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;   // タッチ端末はクリック（モーダル）で確認
+    var x = findExp(btn.dataset.id);
+    if (!x || $('overlay11').classList.contains('open')) return;
+    histPop.innerHTML = '';
+    histPop.appendChild(el('h4', '', historyTitle(x)));
+    fillHistory(histPop, x, 6);
+    histPop.style.left = '0px'; histPop.style.top = '0px';
+    var r = btn.getBoundingClientRect(), w = histPop.offsetWidth, h = histPop.offsetHeight, gap = 8, vw = window.innerWidth, vh = window.innerHeight;
+    var top = r.top - h - gap;
+    if (top < 8) top = r.bottom + gap;                          // 上に収まらなければ下
+    if (top + h > vh - 8) top = Math.max(8, vh - h - 8);        // 下にも収まらなければ画面内へ寄せる
+    var left = Math.max(8, Math.min(vw - w - 8, r.left));       // 左右端の見切れ防止
+    histPop.style.left = left + 'px'; histPop.style.top = top + 'px';
+    histPop.classList.add('show');
+  }
+  document.addEventListener('mouseover', function (e) {
+    var b = e.target.closest && e.target.closest('.upd-btn[data-id]');
+    if (b) showHistPop(b); else hideHistPop();
+  });
+  document.addEventListener('mouseleave', hideHistPop);
+  window.addEventListener('scroll', hideHistPop, true);
+  document.addEventListener('click', function (e) {   // クリック／タップ：履歴モーダルを開く
+    var b = e.target.closest('.upd-btn[data-id]');
+    if (b) { e.stopPropagation(); hideHistPop(); openHistory(b.dataset.id); }
+  });
+  $('hmClose').addEventListener('click', closeHistory);
+  $('overlay11').addEventListener('click', function (e) { if (e.target === $('overlay11')) closeHistory(); });
+  document.addEventListener('keydown', function (e) {   // Esc：履歴モーダルだけを閉じる（下の画面は残す）
+    if (e.key === 'Escape' && $('overlay11').classList.contains('open')) { closeHistory(); e.stopImmediatePropagation(); e.preventDefault(); }
+  }, true);
+
+  // ---------- 店名マスター（data.stores＝カテゴリ別 { カテゴリ名: [店名,...] }）と店名プルダウン ----------
+  function normStore(s) { return String(s || '').toLowerCase().replace(/[\s　\-ー・‐-―]/g, ''); }
+  function storesOf(cat) { return Array.isArray(data.stores[cat]) ? data.stores[cat] : []; }          // 読み取り用（なければ空）
+  function storeArr(cat) { if (!Array.isArray(data.stores[cat])) data.stores[cat] = []; return data.stores[cat]; }   // 書き込み用（なければ作る）
+  // 文字列に含まれる店名をマスターから探す。最も長く一致したものを返し、同点なら優先カテゴリ(prefCat)を選ぶ。{ name, cat } または null
+  function findStore(text, prefCat) {
+    var t = normStore(text), best = null;
+    if (!t) return null;
+    Object.keys(data.stores).forEach(function (cat) {
+      storesOf(cat).forEach(function (n) {
+        var k = normStore(n);
+        if (!k || t.indexOf(k) < 0) return;
+        if (!best || k.length > best.len || (k.length === best.len && cat === prefCat && best.cat !== prefCat)) best = { name: n, cat: cat, len: k.length };
+      });
+    });
+    return best ? { name: best.name, cat: best.cat } : null;
+  }
+  // 店名プルダウン：現在選択中のカテゴリの店名だけを表示する（先頭は「店名を選択」）
+  function renderStoreSel(selectedName) {
+    var sel = $('storeSel');
+    sel.innerHTML = '';
+    var names = storesOf(form.category).slice();
+    if (selectedName && names.indexOf(selectedName) < 0) names.push(selectedName);   // 登録済み支出の店名がリストにない（削除済み・他カテゴリ）場合も、編集中は値を保持する
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = names.length ? '店名を選択' : '店名を選択（このカテゴリは未登録）'; sel.appendChild(o0);
+    names.forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+    sel.value = selectedName && names.indexOf(selectedName) >= 0 ? selectedName : '';
+  }
+  // カテゴリを切り替えたとき：新しいカテゴリのリストに無い店名は選択を外す
+  function syncStoreSel() {
+    var cur = $('storeSel').value;
+    renderStoreSel(storesOf(form.category).indexOf(cur) >= 0 ? cur : '');
+    $('storeSel').classList.remove('ocr-filled');
+    hideStoreSuggest();
+  }
+  function hideStoreSuggest() { $('storeSuggest').hidden = true; $('storeSuggest').dataset.name = ''; }
+  function showStoreSuggest(name) {
+    $('storeSuggest').dataset.name = name;
+    $('storeSuggestTxt').textContent = '「' + name + '」は「' + form.category + '」の店名リストにありません。';
+    $('storeSuggest').hidden = false;
+  }
+  // 指定カテゴリに店名を追加（重複・空は不可）。成功すれば店名、失敗なら false
+  function addStoreName(raw, errBox, cat) {
+    var name = String(raw || '').trim().slice(0, 30);
+    if (!name) { if (errBox) errBox.textContent = '店名を入力してください'; return false; }
+    if (storesOf(cat).some(function (n) { return normStore(n) === normStore(name); })) {
+      if (errBox) errBox.textContent = '「' + name + '」は「' + cat + '」にすでに登録されています';
+      return false;
+    }
+    storeArr(cat).push(name);
+    save();
+    return name;
+  }
+
+  // ----- 店名リストの編集モーダル（カテゴリ別）-----
+  var mgrCat = null;   // 編集中のカテゴリ
+  function renderStoreTabs() {
+    var box = $('storeTabs');
+    box.innerHTML = '';
+    data.categories.forEach(function (c) {
+      var b = el('button', 'stab' + (c === mgrCat ? ' on' : ''));
+      b.type = 'button'; b.dataset.cat = c;
+      var dot = el('i'); dot.style.background = colorOf(c);
+      b.appendChild(dot); b.appendChild(document.createTextNode(c));
+      box.appendChild(b);
+    });
+  }
+  function renderStoreList() {
+    var box = $('storeList'), list = storesOf(mgrCat);
+    box.innerHTML = '';
+    $('storeCatLabel').textContent = '「' + mgrCat + '」の店名（' + list.length + '件）';
+    if (!list.length) box.appendChild(el('div', 'empty-msg', 'このカテゴリには店名が登録されていません'));
+    list.forEach(function (n, i) {
+      var row = el('div', 'srow');
+      row.draggable = true;
+      row.dataset.name = n;
+      var h = el('span', 'shandle', '☰');
+      h.title = 'ドラッグで並び替え';
+      row.appendChild(h);
+      row.appendChild(el('span', 'sname', n));
+      // スマホ（タッチ）向けの上下移動ボタン
+      [['▲', -1, '1つ上へ'], ['▼', 1, '1つ下へ']].forEach(function (d) {
+        var mb = el('button', 'smv', d[0]);
+        mb.type = 'button'; mb.dataset.name = n; mb.dataset.dir = d[1]; mb.title = d[2]; mb.setAttribute('aria-label', n + 'を' + d[2] + '移動');
+        mb.disabled = (d[1] < 0 && i === 0) || (d[1] > 0 && i === list.length - 1);
+        row.appendChild(mb);
+      });
+      var b = el('button', 'sdel', '🗑️ 削除');
+      b.type = 'button'; b.dataset.name = n;
+      row.appendChild(b);
+      box.appendChild(row);
+    });
+  }
+  // 入力モーダル側のプルダウンを同期（編集中のカテゴリが入力モーダルのカテゴリと同じ場合のみ内容が変わる）
+  function refreshStoreSelFromMaster(forceSel) {
+    renderStoreSel(forceSel !== undefined ? forceSel : $('storeSel').value);
+  }
+  function openStoreMgr() {
+    mgrCat = data.categories.indexOf(form.category) >= 0 ? form.category : data.categories[0];   // 入力モーダルで選択中のカテゴリから開く
+    $('storeErr').textContent = ''; $('storeNew').value = '';
+    renderStoreTabs(); renderStoreList();
+    $('overlay10').classList.add('open');
+    setTimeout(function () { $('storeNew').focus(); }, 50);
+  }
+  function closeStoreMgr() { $('overlay10').classList.remove('open'); }
+  $('storeMgr').addEventListener('click', openStoreMgr);
+  $('storeClose').addEventListener('click', closeStoreMgr);
+  $('overlay10').addEventListener('click', function (e) { if (e.target === $('overlay10')) closeStoreMgr(); });
+  document.addEventListener('keydown', function (e) {   // Esc：店名管理だけを閉じる（下の入力モーダルは残す）
+    if (e.key === 'Escape' && $('overlay10').classList.contains('open')) { closeStoreMgr(); e.stopImmediatePropagation(); e.preventDefault(); }
+  }, true);
+  $('storeTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.stab');
+    if (!b || b.dataset.cat === mgrCat) return;
+    mgrCat = b.dataset.cat;
+    $('storeErr').textContent = ''; $('storeNew').value = '';
+    renderStoreTabs(); renderStoreList();
+  });
+  // 並び順を変更して即保存し、店名プルダウンの順序にも反映する（行は FLIP アニメーションで滑らかに動かす）
+  function moveStore(from, to) {
+    var a = storeArr(mgrCat);
+    if (from < 0 || from >= a.length) return;
+    to = Math.max(0, Math.min(a.length - 1, to));
+    if (from === to) return;
+    var box = $('storeList'), tops = {};
+    Array.prototype.forEach.call(box.querySelectorAll('.srow'), function (r) { tops[r.dataset.name] = r.getBoundingClientRect().top; });
+    a.splice(to, 0, a.splice(from, 1)[0]);
+    save();
+    renderStoreList();
+    refreshStoreSelFromMaster();     // 入力モーダルのプルダウンも新しい並びに
+    Array.prototype.forEach.call(box.querySelectorAll('.srow'), function (r) {
+      var dy = (tops[r.dataset.name] || 0) - r.getBoundingClientRect().top;
+      if (!dy) return;
+      r.style.transition = 'none'; r.style.transform = 'translateY(' + dy + 'px)';
+      void r.offsetHeight;
+      r.style.transition = ''; r.style.transform = '';
+    });
+  }
+  $('storeList').addEventListener('click', function (e) {
+    var b = e.target.closest('.smv');
+    if (!b || b.disabled) return;
+    var i = storesOf(mgrCat).indexOf(b.dataset.name);
+    moveStore(i, i + Number(b.dataset.dir));
+  });
+  // ドラッグ＆ドロップ（HTML5 DnD）
+  var dragStore = null, dropStoreIdx = -1;
+  function clearStoreDrop() {
+    Array.prototype.forEach.call($('storeList').querySelectorAll('.drop-before, .drop-after'), function (r) { r.classList.remove('drop-before', 'drop-after'); });
+  }
+  function endStoreDrag() {
+    dragStore = null; dropStoreIdx = -1;
+    clearStoreDrop();
+    Array.prototype.forEach.call($('storeList').querySelectorAll('.dragging'), function (r) { r.classList.remove('dragging'); });
+  }
+  $('storeList').addEventListener('dragstart', function (e) {
+    var r = e.target.closest('.srow');
+    if (!r) return;
+    dragStore = r.dataset.name;
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', dragStore); } catch (err) {}
+    setTimeout(function () { r.classList.add('dragging'); }, 0);
+  });
+  $('storeList').addEventListener('dragover', function (e) {
+    if (dragStore === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var r = e.target.closest('.srow');
+    clearStoreDrop();
+    if (!r) return;
+    var rect = r.getBoundingClientRect(), after = e.clientY > rect.top + rect.height / 2;
+    var idx = storesOf(mgrCat).indexOf(r.dataset.name);
+    dropStoreIdx = after ? idx + 1 : idx;     // 挿入位置（元の配列上の隙間番号）
+    r.classList.add(after ? 'drop-after' : 'drop-before');
+  });
+  $('storeList').addEventListener('drop', function (e) {
+    if (dragStore === null) return;
+    e.preventDefault();
+    var from = storesOf(mgrCat).indexOf(dragStore), to = dropStoreIdx;
+    clearStoreDrop();
+    if (from >= 0 && to >= 0) { if (to > from) to--; moveStore(from, to); }
+    endStoreDrag();   // 再描画で元の行が消えるため dragend が届かない場合に備える
+  });
+  $('storeList').addEventListener('dragend', endStoreDrag);
+  function doStoreAdd() {
+    $('storeErr').textContent = '';
+    var added = addStoreName($('storeNew').value, $('storeErr'), mgrCat);
+    if (!added) { $('storeNew').focus(); return; }
+    $('storeNew').value = '';
+    renderStoreList();
+    if (mgrCat === form.category) { renderStoreSel(added); $('storeSel').classList.remove('ocr-filled'); }   // 追加した店名をそのまま選択状態にする
+    hideStoreSuggest();
+  }
+  $('storeAddBtn').addEventListener('click', doStoreAdd);
+  $('storeNew').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); doStoreAdd(); }
+  });
+  // 削除は2段階（1回目で「本当に削除」表示、3秒以内にもう一度押すと削除）。支出に保存済みの店名は変わらない
+  $('storeList').addEventListener('click', function (e) {
+    var b = e.target.closest('.sdel');
+    if (!b) return;
+    if (!b.classList.contains('confirm')) {
+      b.classList.add('confirm'); b.textContent = '本当に削除';
+      setTimeout(function () { if (b.isConnected) { b.classList.remove('confirm'); b.textContent = '🗑️ 削除'; } }, 3000);
+      return;
+    }
+    var name = b.dataset.name, cur = $('storeSel').value;
+    data.stores[mgrCat] = storesOf(mgrCat).filter(function (n) { return n !== name; });
+    save();
+    renderStoreList();
+    if (mgrCat === form.category) renderStoreSel(cur === name ? '' : cur);
+  });
+  $('storeSel').addEventListener('change', function () { this.classList.remove('ocr-filled'); hideStoreSuggest(); });
+  $('storeSuggestAdd').addEventListener('click', function () {   // ワンタップで店名マスターに追加して選択
+    var name = $('storeSuggest').dataset.name || '';
+    var added = addStoreName(name, null, form.category);
+    if (!added) {
+      var m = storesOf(form.category).filter(function (n) { return normStore(n) === normStore(name); })[0];
+      if (m) { renderStoreSel(m); hideStoreSuggest(); }
+      return;
+    }
+    if ($('memo').value.trim() === name) $('memo').value = '';   // メモに入れていた店名は重複するので消す
+    renderStoreSel(added);
+    hideStoreSuggest();
+  });
+
+  // 日付文字列を厳密に YYYY-MM-DD へ。数字部分（年・月・日）だけを取り出し、曜日・時刻などは一切含めない。不正なら null
+  function normDate(s) {
+    s = String(s || '').replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).trim();
+    var m = /^(\d{4})\D{1,2}(\d{1,2})\D{1,2}(\d{1,2})\D*$/.exec(s) || /^(\d{4})(\d{2})(\d{2})$/.exec(s);
+    if (!m) return null;
+    var y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]), dt = new Date(y, mo - 1, d);
+    if (y < 2000 || y > 2100 || dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+    return y + '-' + pad(mo) + '-' + pad(d);
+  }
+  function updateModalTitle() {
+    var p = (normDate($('dateIn').value) || selected).split('-');
+    $('modalTitle').textContent = p[0] + '年' + Number(p[1]) + '月' + Number(p[2]) + '日の支出を' + (editingId ? '編集' : '入力');
+  }
+  // 手入力した日付は確定時に YYYY-MM-DD へ整える
+  $('dateIn').addEventListener('change', function () {
+    var n = normDate($('dateIn').value);
+    if (n) $('dateIn').value = n;
+    updateModalTitle();
+  });
+  $('dateIn').addEventListener('input', updateModalTitle);
+  $('datePick').addEventListener('click', function () {
+    var p = $('datePicker');
+    p.value = normDate($('dateIn').value) || selected;
+    if (p.showPicker) { try { p.showPicker(); return; } catch (e) {} }
+    p.focus(); p.click();
+  });
+  $('datePicker').addEventListener('change', function () {
+    if (this.value) { $('dateIn').value = this.value; updateModalTitle(); }
+  });
+
+  // ---------- レシートOCR（Tesseract.js・ブラウザ内で解析） ----------
+  var TESS_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+  var tessPromise = null, ocrToken = 0, ocrBusy = false, toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 4500);
+  }
+  function setOcrBusy(on) {
+    ocrBusy = on;
+    ['saveBtn', 'photoBtn', 'photoLibBtn', 'photoDel'].forEach(function (id) { $(id).disabled = on; });   // 解析中の二重操作を防止
+  }
+  // 解析状況の表示。kind: null=非表示 / 'run' / 'ok' / 'ng'
+  function showOcr(kind, msg, pct) {
+    var box = $('ocrStatus');
+    if (!kind) { box.hidden = true; return; }
+    box.hidden = false;
+    box.className = 'ocr-status' + (kind === 'run' ? '' : ' ' + kind);
+    $('ocrMsg').textContent = msg || '';
+    $('ocrBar').style.width = Math.max(3, Math.min(100, pct || 0)) + '%';
+  }
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (tessPromise) return tessPromise;
+    tessPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = TESS_URL;
+      s.onload = function () { window.Tesseract ? resolve(window.Tesseract) : reject(new Error('no Tesseract')); };
+      s.onerror = function () { reject(new Error('load failed')); };
+      document.head.appendChild(s);
+    }).catch(function (e) { tessPromise = null; throw e; });
+    return tessPromise;
+  }
+
+  // ---- 画像の前処理：グレースケール化 → コントラスト伸長 → 適応的二値化 ----
+  function buildOcrCanvases(img) {
+    var w = img.naturalWidth, h = img.naturalHeight, maxS = Math.max(w, h), minS = Math.min(w, h);
+    // 保存用の縮小写真(800px)とは別に、認識用に十分な解像度（短辺≒1100px以上、長辺≦2600px）で作る
+    var s = Math.min(2600 / maxS, Math.max(1, 1100 / minS), 2.5);
+    var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+    var cv = document.createElement('canvas');
+    cv.width = cw; cv.height = ch;
+    var ctx = cv.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch);
+    ctx.drawImage(img, 0, 0, cw, ch);
+    var id = ctx.getImageData(0, 0, cw, ch), px = id.data, n = cw * ch;
+    var gray = new Uint8ClampedArray(n), hist = new Uint32Array(256), i;
+    for (i = 0; i < n; i++) {
+      var g = Math.round(0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]);
+      gray[i] = g; hist[g]++;
+    }
+    // コントラスト伸長（下位2%・上位2%を端に）
+    var acc = 0, lo = 0, hi = 255;
+    for (i = 0; i < 256; i++) { acc += hist[i]; if (acc >= n * 0.02) { lo = i; break; } }
+    acc = 0;
+    for (i = 255; i >= 0; i--) { acc += hist[i]; if (acc >= n * 0.02) { hi = i; break; } }
+    if (hi - lo < 30) { lo = 0; hi = 255; }
+    var span = hi - lo;
+    for (i = 0; i < n; i++) gray[i] = Math.max(0, Math.min(255, Math.round((gray[i] - lo) * 255 / span)));
+    // グレースケール画像
+    var gOut = ctx.createImageData(cw, ch);
+    for (i = 0; i < n; i++) { gOut.data[i * 4] = gOut.data[i * 4 + 1] = gOut.data[i * 4 + 2] = gray[i]; gOut.data[i * 4 + 3] = 255; }
+    var gcv = document.createElement('canvas'); gcv.width = cw; gcv.height = ch;
+    gcv.getContext('2d').putImageData(gOut, 0, 0);
+    // 適応的二値化（局所平均より十分暗い画素だけを黒にする。影・ムラに強い）
+    var W1 = cw + 1, integ = new Uint32Array(W1 * (ch + 1)), x, y, rowSum;
+    for (y = 0; y < ch; y++) {
+      rowSum = 0;
+      for (x = 0; x < cw; x++) { rowSum += gray[y * cw + x]; integ[(y + 1) * W1 + x + 1] = integ[y * W1 + x + 1] + rowSum; }
+    }
+    var R = Math.max(12, Math.round(cw / 30)), bOut = ctx.createImageData(cw, ch);
+    for (y = 0; y < ch; y++) {
+      var y0 = Math.max(0, y - R), y1 = Math.min(ch, y + R + 1);
+      for (x = 0; x < cw; x++) {
+        var x0 = Math.max(0, x - R), x1 = Math.min(cw, x + R + 1);
+        var sum = integ[y1 * W1 + x1] - integ[y0 * W1 + x1] - integ[y1 * W1 + x0] + integ[y0 * W1 + x0];
+        var mean = sum / ((x1 - x0) * (y1 - y0));
+        var v = gray[y * cw + x] < mean - 14 ? 0 : 255;
+        var o = (y * cw + x) * 4;
+        bOut.data[o] = bOut.data[o + 1] = bOut.data[o + 2] = v; bOut.data[o + 3] = 255;
+      }
+    }
+    var bcv = document.createElement('canvas'); bcv.width = cw; bcv.height = ch;
+    bcv.getContext('2d').putImageData(bOut, 0, 0);
+    return { bin: bcv, gray: gcv };
+  }
+
+  // ---- 認識テキストから 日付・合計金額・店名・カテゴリ を抽出（純粋関数）----
+  var CAT_RULES = [   // 上から順に判定（外食 → 日用品 → 食費）
+    ['外食費', /カフェ|CAFE|珈琲|コーヒー|レストラン|マクドナルド|マック|モスバーガー|ケンタッキー|バーガー|すき家|吉野家|松屋|ガスト|サイゼリヤ|スターバックス|スタバ|ドトール|タリーズ|ラーメン|食堂|居酒屋|寿司|スシロー|くら寿司|丸亀製麺|ココイチ|焼肉|うどん|そば|ファミレス|ミスタードーナツ/i],
+    ['日用品', /Seria|セリア|ダイソー|DAISO|キャンドゥ|Can\s?Do|100円|クリエイト|ウエルシア|マツモトキヨシ|マツキヨ|ドラッグ|スギ薬局|ココカラ|サンドラッグ|ツルハ|ホームセンター|カインズ|ニトリ|無印|コスモス|薬局|薬店/i],
+    ['食費', /スーパー|マート|MART|食品|LIFE|ライフ|サミット|イオン|マルエツ|西友|オーケー|業務スーパー|コープ|生協|ヨークベニマル|いなげや|ベイシア|ヤオコー|セブン|ローソン|ファミリーマート|ファミマ|ミニストップ|成城石井|ロピア|青果|精肉|鮮魚|パン屋|ベーカリー/i]
+  ];
+  // 既知チェーン辞書（正規の店名とカテゴリ）。rx=完全一致、keys=1文字違いまで許容する曖昧一致
+  var CHAINS = [
+    { name: 'クリエイト', cat: '日用品', rx: /CREATE|クリエイト|ｸﾘｴｲﾄ/i, keys: ['クリエイト', 'CREATE'] },
+    { name: 'Seria', cat: '日用品', rx: /Seria|セリア/i, keys: ['Seria', 'セリア'] },
+    { name: 'ダイソー', cat: '日用品', rx: /DAISO|ダイソー/i, keys: ['ダイソー', 'DAISO'] },
+    { name: 'キャンドゥ', cat: '日用品', rx: /キャンドゥ|Can\s?Do/i, keys: ['キャンドゥ'] },
+    { name: 'マツモトキヨシ', cat: '日用品', rx: /マツモトキヨシ|マツキヨ/, keys: ['マツモトキヨシ'] },
+    { name: 'ウエルシア', cat: '日用品', rx: /ウエルシア|ウェルシア/, keys: ['ウエルシア'] },
+    { name: 'ライフ', cat: '食費', rx: /(^|[^A-Za-z])LIFE([^A-Za-z]|$)|ライフ/, keys: [] },
+    { name: 'サミット', cat: '食費', rx: /サミット/, keys: [] },
+    { name: '西友', cat: '食費', rx: /西友|SEIYU/i, keys: [] },
+    { name: 'イオン', cat: '食費', rx: /イオン|AEON/i, keys: [] },
+    { name: 'まいばすけっと', cat: '食費', rx: /まいばす|MY\s?BASKET/i, keys: ['まいばすけっと'] },
+    { name: 'セブン-イレブン', cat: '食費', rx: /セブン[-ー]?イレブン|7-?ELEVEN/i, keys: ['セブンイレブン'] },
+    { name: 'ローソン', cat: '食費', rx: /ローソン|LAWSON/i, keys: ['ローソン'] },
+    { name: 'ファミリーマート', cat: '食費', rx: /ファミリーマート|ファミマ|FamilyMart/i, keys: ['ファミリーマート'] },
+    { name: 'マクドナルド', cat: '外食費', rx: /マクドナルド|McDonald/i, keys: ['マクドナルド'] }
+  ];
+  function extractReceipt(raw) {
+    // 全角英数字・記号を半角へ（toHalf は改行やカンマも消すので使わない）
+    var text = String(raw || '').replace(/[！-～]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+      .replace(/[￥\\]/g, '¥').replace(/[‐－―]/g, '-');
+    // 「¥」直後の縦線(|)・小文字エル(l)・大文字アイ(I)・感嘆符(!)は、数字の「1」の誤読とみなして置換する（「¥| 893」→「¥1893」）
+    text = text.replace(/¥\s*[|lLIi!丨\[\]]\s*(?=[,.、]?\s*\d)/g, '¥1');   // 実測：「¥1,893」が「¥L893」と読まれた
+    // 「¥」に続く数字列の中の紛らわしい文字も直す：O/o→0、l/L/I/i/|/!→1（実測：「¥110」が「¥11O」と読まれた）
+    text = text.replace(/¥\s*([0-9OoDlLIi|!]+(?:\s?[,.、]\s?[0-9OoDlLIi|!]{3})*)(?![A-Za-z])/g, function (m, g) {
+      if (!/[0-9]/.test(g) || g.length < 2) return m;
+      return '¥' + g.replace(/[Oo]/g, '0').replace(/[lLIi|!]/g, '1');
+    });
+    // 「¥」自体が落ちた「合計 l,893」型も、金額キーワードを含む行に限って補正する
+    text = text.split('\n').map(function (l) {
+      return /合計|お買上|会計|決済|支払|PayPay|税込|カード/i.test(l.replace(/\s/g, ''))
+        ? l.replace(/(^|[^\dA-Za-z|])[|lLIi!丨\[\]](?=\s*[,.、]?\s*\d{3}(?!\d))/g, '$11') : l;
+    }).join('\n');
+    var dbg = { normalizedText: text, keywordLines: [], votes: null, chosen: null, taxable: null };
+    var rawLines = text.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    // 日本語OCRは文字間に空白が入りやすいので、キーワード判定用に空白を除去した行も持つ
+    var lines = rawLines.map(function (l) { return l.replace(/[\s　]+/g, ''); });
+    var joined = lines.join('\n');
+    var nowY = new Date().getFullYear();
+
+    // ---- 日付：数字（年・月・日）だけを取り出して YYYY-MM-DD を組み立てる ----
+    function validDate(y, m, d) {
+      if (!(y >= 2000 && y <= nowY + 1) || !(m >= 1 && m <= 12) || !(d >= 1 && d <= 31)) return null;
+      var dt = new Date(y, m - 1, d);
+      if (dt.getMonth() !== m - 1) return null;
+      return y + '-' + pad(m) + '-' + pad(d);
+    }
+    var spaced = rawLines.map(function (l) { return l.replace(/[\s　]+/g, ' '); }).join('\n');
+    var date = null, m, srcs = [spaced, joined];   // 空白あり（時刻の連結を防ぐ）→ 空白なし（文字間に空白が入るOCR）の順
+    var pats = [
+      [/令和\s?(\d{1,2})年\s?(\d{1,2})月\s?(\d{1,2})日?(?!\d)/g, function (m) { return validDate(2018 + Number(m[1]), Number(m[2]), Number(m[3])); }],
+      [/(20\d{2})\s?[年\/.\-]\s?(\d{1,2})\s?[月\/.\-]\s?(\d{1,2})(?!\d)/g, function (m) { return validDate(Number(m[1]), Number(m[2]), Number(m[3])); }],
+      [/(?:^|[^\d])(\d{2})[\/.\-](\d{1,2})[\/.\-](\d{1,2})(?!\d)/g, function (m) { return validDate(2000 + Number(m[1]), Number(m[2]), Number(m[3])); }]   // YY/MM/DD
+    ];
+    pats.forEach(function (p) {
+      srcs.forEach(function (s) {
+        p[0].lastIndex = 0;
+        while (!date && (m = p[0].exec(s))) date = p[1](m);
+      });
+    });
+    // 日付行が読めない場合の保険：決済の取引IDなど長い数字列に埋まった YYYYMMDD（例: 2135820261022100719…）を使う
+    if (!date) {
+      var runs = joined.match(/\d{12,}/g) || [];
+      runs.some(function (run) {
+        for (var q = 0; q + 8 <= run.length && !date; q++) {
+          var c8 = run.substr(q, 8);
+          if (c8.slice(0, 2) === '20') date = validDate(Number(c8.slice(0, 4)), Number(c8.slice(4, 6)), Number(c8.slice(6, 8)));
+        }
+        return !!date;
+      });
+    }
+
+    // ---- 金額 ----
+    // 桁区切りの崩れを直す：「1, 893」「1 893」「1.893」「1、893」「1,\n893」などを 1893 に揃える
+    function fixSep(s) {
+      var prev;
+      do { prev = s; s = s.replace(/(\d{1,3})[,.、'’‘`·]?\s*[,.、'’‘`·]\s*(\d{3})(?!\d)/g, '$1,$2'); } while (s !== prev);
+      return s;
+    }
+    // 行の途中で改行された金額（「¥1,」+「893」）をつなぐ
+    var mergedRaw = [];
+    rawLines.forEach(function (l) {
+      var p = mergedRaw.length - 1;
+      if (p >= 0 && /(¥|\d)\s*[,.、]\s*$/.test(mergedRaw[p]) && /^\s*\d{3}(?!\d)/.test(l)) mergedRaw[p] = mergedRaw[p].replace(/\s+$/, '') + l.trim();
+      else mergedRaw.push(l);
+    });
+    var alines = mergedRaw.map(function (l) { return fixSep(l.replace(/[\s　]+/g, ' ')).replace(/\s+/g, ''); });
+    // 行内の金額候補を取り出す。「¥ 1,893」「1, 893円」に対応。時刻(11:19)・日付・品番(CR2025)・小数・電話番号・税率(10%)・点数(2点)は除外
+    function nums(s) {
+      var out = [], r = /(¥?)(\d{1,3}(?:,\d{3})+|\d+)(円?)/g, k;
+      while ((k = r.exec(s))) {
+        var digits = k[2].replace(/,/g, ''), v = Number(digits);
+        var i = k.index, before = s.charAt(i - 1), end = i + k[0].length, after = s.charAt(end);
+        var yen = k[1] === '¥' || k[3] === '円';
+        // 品番・日付・時刻・小数・電話番号を除外（ただし「PayPay1893」のように決済名の直後は金額として扱う）
+        if (!k[1] && /[A-Za-z\/:.\-]/.test(before) && !/(paypay|rpay|merpay|nanaco|waon|suica|icoca)$/i.test(s.slice(0, i))) continue;
+        if (/[\/:\-%点個枚本冊]/.test(after) || (after === '.' && /\d/.test(s.charAt(end + 1)))) continue;
+        if (digits.length > 7 || !(v > 0)) continue;
+        out.push({ v: v, yen: yen });
+      }
+      return out;
+    }
+    function pick(list) {   // ¥付きがあればそれを優先し、その中の最大値
+      var y = list.filter(function (o) { return o.yen; });
+      var use = y.length ? y : list, best = 0;
+      use.forEach(function (o) { if (o.v > best) best = o.v; });
+      return best;
+    }
+    var EXCL = /お預|預り|預かり|おつり|お釣|釣り|釣銭|お返し|ポイント|残高/;
+    function byKeyword(re) {   // キーワード行（なければ次の行）の金額
+      var found = [];
+      alines.forEach(function (ln, i) {
+        if (!re.test(ln) || EXCL.test(ln)) return;
+        var n = nums(ln);
+        if (!n.length && alines[i + 1] && /^¥?[\d,]+円?$/.test(alines[i + 1])) n = nums(alines[i + 1]);
+        if (n.length) found.push(pick(n));
+        dbg.keywordLines.push({ keyword: String(re.source).slice(0, 18), line: ln, values: n.map(function (o) { return o.v; }) });
+      });
+      return found;
+    }
+    // 優先順：合計 → お買上 → 決済・支払 → 税込（小計は税抜のことがあるので最後の手段）
+    var groups = [/合計|総合計/, /お買上|お買い上げ|御買上|買上額|お会計|会計/, /コード決済|QR決済|決済|クレジット|カード|電子マネー|PayPay|支払/i, /税込/];
+    var votes = {}, firstPri = {}, any = false;
+    groups.forEach(function (re, gi) {
+      byKeyword(re).forEach(function (v) {
+        votes[v] = (votes[v] || 0) + 1;                       // 同じ金額が複数の行に出る＝信頼できる
+        if (firstPri[v] === undefined || gi < firstPri[v]) firstPri[v] = gi;
+        any = true;
+      });
+    });
+    var amount = null;
+    if (any) {
+      var vals = Object.keys(votes).map(Number);
+      // 先頭／末尾の桁落ち（1893→893、110→11）：より長い金額の部分文字列になっている候補は誤認識として除く
+      vals = vals.filter(function (v) {
+        var sv = String(v);
+        return !vals.some(function (w) {
+          var sw = String(w);
+          if (!(w > v) || sw.length - sv.length < 1 || sw.length - sv.length > 2) return false;
+          if (sw.slice(-sv.length) === sv || sw.slice(0, sv.length) === sv) return true;
+          var q = 0;   // 途中の桁が落ちた場合（1893→183）も、より長い金額の部分列なら誤認識とみなす
+          for (var z = 0; z < sw.length && q < sv.length; z++) if (sw.charAt(z) === sv.charAt(q)) q++;
+          return q === sv.length;
+        });
+      });
+      // 出現回数が多い → キーワード優先度が高い → 金額が大きい 順
+      vals.sort(function (a, b) { return (votes[b] - votes[a]) || (firstPri[a] - firstPri[b]) || (b - a); });
+      amount = vals[0];
+      dbg.votes = votes; dbg.survivors = vals.slice();
+    }
+    if (amount === null) { var sub = byKeyword(/小計/); if (sub.length) amount = Math.max.apply(null, sub); }
+    // 「10%対象 110」のような税率別対象額で検算：合計がそれより小さければ桁落ちとみなして補正
+    var taxable = [];
+    alines.forEach(function (ln) {
+      if (/\d{1,2}%対象|対象計/.test(ln) && !/消費税|内税/.test(ln)) { var n = nums(ln); if (n.length) taxable.push(pick(n)); }
+    });
+    if (taxable.length) {
+      var tmax = Math.max.apply(null, taxable), tsum = taxable.reduce(function (a, b) { return a + b; }, 0);
+      if (amount === null || amount < tmax) amount = tsum;
+    }
+    if (amount === null) {   // 最後の手段：¥付きの最大値（税額の行は除く）
+      var cand = [];
+      alines.forEach(function (ln) { if (!/消費税|内税|税率/.test(ln)) nums(ln).forEach(function (o) { if (o.yen) cand.push(o.v); }); });
+      if (cand.length) amount = Math.max.apply(null, cand);
+    }
+
+    // ---- 店名：既知チェーン辞書（あいまい一致）→ 上部の行（ノイズ文字列は採用しない）----
+    var headRaw = rawLines.slice(0, 12);
+    var headC = headRaw.join(' ').replace(/[\s　]+/g, '');
+    var allC = lines.join('');
+    function fuzzyHas(hay, key) {   // 4文字以上の語は、1文字違いまで許容して探す
+      var h = hay.toLowerCase(), k = key.toLowerCase();
+      if (h.indexOf(k) >= 0) return true;
+      if (k.length < 5) return false;
+      for (var i = 0; i + k.length <= h.length; i++) {
+        var bad = 0;
+        for (var j = 0; j < k.length && bad < 2; j++) if (h.charAt(i + j) !== k.charAt(j)) bad++;
+        if (bad < 2) return true;
+      }
+      return false;
+    }
+    var chain = null;
+    for (var ci = 0; ci < CHAINS.length && !chain; ci++) {
+      var cn = CHAINS[ci];
+      var hit = cn.rx.test(headC) || cn.keys.some(function (k) { return fuzzyHas(headC, k); }) || cn.rx.test(allC);
+      if (hit) chain = cn;
+    }
+    // 店名として自然か：カタカナ/英数だけの語、または「〜店・〜屋・薬局…」など店名らしい語を含み、記号やひらがな始まりの崩れがないこと
+    function plausibleStore(l) {
+      if (!l || l.length < 3 || l.length > 30) return false;
+      if (/[-_~|=<>*#\[\]{}^`\\]/.test(l)) return false;                    // 記号混じり＝文字化け
+      if (/^[をはがにのとでもへやか]/.test(l)) return false;                // 助詞から始まる＝崩れた認識
+      if (/^[゠-ヿー・A-Za-z0-9&'.\s]+$/.test(l) && (l.match(/[゠-ヿA-Za-z]/g) || []).length >= 3) return true;
+      if (/店|屋|堂|館|薬局|薬店|商店|市場|マート|ストア|スーパー|カフェ|ドラッグ|ショップ|センター|ホーム|モール|食品|百貨|商会|工房|食堂|書店/.test(l)) {
+        return /^[぀-ヿ一-鿿A-Za-z0-9ー・&'.\s]+$/.test(l);
+      }
+      return false;
+    }
+    var bad = /レシート|領収|TEL|電話|〒|登録番号|^T\d{10,}|http|www\.|\d{2,4}[\/.\-]\d{1,2}[\/.\-]\d{1,2}|^[\d\s\-:.]+$|ありがとう|毎度|いらっしゃい|責任者|担当|No\.|NO\./i;
+    var cands = [];
+    for (var li = 0; li < Math.min(rawLines.length, 8); li++) {
+      var l = rawLines[li].replace(/([^\x00-\x7F])\s+(?=[^\x00-\x7F])/g, '$1').trim();   // 日本語文字間の空白を詰める
+      if (bad.test(l) || /[都道府県市区町村郡].*\d|\d+-\d+/.test(l)) continue;           // 住所・電話・日付など
+      if (plausibleStore(l)) cands.push({ l: l, i: li });
+    }
+    var store = '';
+    if (chain) {
+      store = chain.name;
+      // 同じ店名を含まない「◯◯店」の行が上部にあれば、支店名として添える
+      // 店名（崩れた認識を含む）と同じ行なら、末尾の「◯◯店」だけを支店名として取り出す
+      var branch = '';
+      cands.some(function (c) {
+        var compact = c.l.replace(/\s/g, ''), tok = c.l;
+        var isChainLine = c.l.indexOf(chain.name) >= 0 || chain.rx.test(compact) || chain.keys.some(function (k) { return fuzzyHas(compact, k); });
+        if (isChainLine) { var parts = c.l.split(/\s+/); tok = parts.length > 1 ? parts[parts.length - 1] : ''; }
+        if (tok && tok.length >= 3 && tok.length <= 20 && /店$/.test(tok) && tok !== chain.name) { branch = tok; return true; }
+        return false;
+      });
+      if (branch) store += ' ' + branch;
+    } else if (cands.length) {
+      store = cands[0].l;
+      var nx = cands[1];
+      if (nx && nx.i === cands[0].i + 1 && nx.l.length <= 20 && /店$|支店|営業所|店舗$/.test(nx.l) && !/店$/.test(store)) store += ' ' + nx.l;   // 「Seria」+「オリンピック関原店」
+      store = store.slice(0, 40);
+    }
+
+    // ---- カテゴリ推測：辞書 → 店名・上部の行（該当なしは null＝現状維持）----
+    var head = (store + ' ' + headRaw.join(' ')).replace(/[\s　]+/g, ' ');
+    var headNS = head.replace(/ /g, '');
+    var category = chain ? chain.cat : null;
+    for (var ri = 0; ri < CAT_RULES.length && !category; ri++) {
+      if (CAT_RULES[ri][1].test(head) || CAT_RULES[ri][1].test(headNS)) category = CAT_RULES[ri][0];
+    }
+    dbg.taxable = taxable; dbg.chosen = amount;
+    return { date: date, amount: amount, store: store, chain: chain ? chain.name : '', category: category, debug: dbg };
+  }
+
+  function loadImageFromFile(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () { resolve({ img: img, url: url }); };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('decode')); };
+      img.src = url;
+    });
+  }
+
+  function runOcr(file) {
+    var tok = ++ocrToken;
+    setOcrBusy(true);
+    showOcr('run', '🔍 レシートを解析中...（画像を補正しています）', 3);
+    var timer = null, worker = null;
+    var timeout = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error('timeout')); }, 240000); });
+    var job = (async function () {
+      var loaded = await loadImageFromFile(file);
+      var cvs;
+      try { cvs = buildOcrCanvases(loaded.img); } finally { URL.revokeObjectURL(loaded.url); }
+      var T = await loadTesseract();
+      if (tok !== ocrToken) return null;
+      var pass = 1;
+      worker = await T.createWorker('jpn', 1, {
+        logger: function (m) {
+          if (tok !== ocrToken || !m || typeof m.progress !== 'number') return;
+          var label = m.status === 'recognizing text' ? '文字を認識中' : '準備中';
+          showOcr('run', '🔍 レシートを解析中...（' + label + ' ' + Math.round(m.progress * 100) + '%' + (pass > 1 ? '・再解析' : '') + '）', m.progress * 100);
+        }
+      });
+      // 1回目：二値化画像（レシート向けの単一ブロック指定）
+      await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
+      var t1 = (await worker.recognize(cvs.bin)).data.text;
+      console.log('[OCR] 1回目（二値化画像）rawText:\n' + t1);
+      var r1 = extractReceipt(t1);
+      console.log('[OCR] 1回目 金額候補・抽出結果:', r1.debug, { date: r1.date, amount: r1.amount, store: r1.store, category: r1.category });
+      if (tok !== ocrToken) return null;
+      if (r1.date && r1.amount) return r1;
+      // 2回目：日付か金額が取れなかった場合だけ、グレースケール画像で再解析して補完
+      pass = 2;
+      await worker.setParameters({ tessedit_pageseg_mode: '4' });
+      var t2 = (await worker.recognize(cvs.gray)).data.text;
+      console.log('[OCR] 2回目（グレースケール画像）rawText:\n' + t2);
+      var r2 = extractReceipt(t2);
+      console.log('[OCR] 2回目 金額候補・抽出結果:', r2.debug, { date: r2.date, amount: r2.amount, store: r2.store, category: r2.category });
+      return { date: r1.date || r2.date, amount: r1.amount || r2.amount, store: r1.store || r2.store, chain: r1.chain || r2.chain, category: r1.category || r2.category };
+    })();
+    Promise.race([job, timeout]).then(function (r) {
+      clearTimeout(timer);
+      if (worker) { worker.terminate().catch(function () {}); worker = null; }
+      if (tok !== ocrToken || !r) return;   // モーダルが閉じられた／別の写真に差し替えられた
+      setOcrBusy(false);
+      var done = [];
+      // 自動入力のみ。保存はしない（ユーザーが画像と見比べて確認し、登録ボタンを押すまで確定しない）
+      if (r.date) { $('dateIn').value = r.date; $('dateIn').classList.add('ocr-filled'); updateModalTitle(); done.push('日付'); }
+      if (r.amount) { $('amount').value = String(r.amount); $('amount').classList.add('ocr-filled'); $('err').textContent = ''; done.push('金額'); }
+      // カテゴリ → 店名の順に決める。店名はカテゴリ別マスターから探し、見つかればそのカテゴリを選んで店名プルダウンも自動選択する
+      hideStoreSuggest();
+      var wantCat = (r.category && data.categories.indexOf(r.category) >= 0) ? r.category : null;
+      var hit = r.store ? (findStore(r.chain || '', wantCat) || findStore(r.store, wantCat)) : null;
+      if (hit && data.categories.indexOf(hit.cat) >= 0) wantCat = hit.cat;   // マスター上の所属カテゴリを優先
+      if (wantCat) {
+        form.category = wantCat; renderModalCats(); done.push('カテゴリ(' + wantCat + ')');
+        var pb = $('catBtns').querySelector('button.on'); if (pb) pb.classList.add('ocr-pick');
+      }
+      if (hit) {
+        renderStoreSel(hit.name); $('storeSel').classList.add('ocr-filled'); done.push('店名(' + hit.name + ')');
+        var rest = r.store.replace(new RegExp(hit.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '').replace(/^[\s\-ー・]+|[\s]+$/g, '').trim();
+        if (rest && !$('memo').value.trim()) { $('memo').value = rest; $('memo').classList.add('ocr-filled'); done.push('メモ(' + rest + ')'); }
+      } else {
+        renderStoreSel('');
+        if (r.store) {
+          // マスターにない店名：プルダウンは未選択のまま、メモに入れ、ワンタップで現在のカテゴリの店名リストへ追加できるようにする
+          if (!$('memo').value.trim()) { $('memo').value = r.store; $('memo').classList.add('ocr-filled'); done.push('店名(メモ)'); }
+          showStoreSuggest(r.chain || r.store);
+        }
+      }
+      if (done.length) $('ocrReview').hidden = false;   // 「読み取り結果を確認してください」バー
+      if (r.date || r.amount) {
+        showOcr('ok', done.join('・') + 'を自動入力しました。画像と見比べて内容を確認してください');
+      } else if (done.length) {
+        showOcr('ok', done.join('・') + 'を自動入力しました。日付と金額は読み取れませんでした');
+      } else {
+        showOcr(null);
+        toast('自動認識できませんでした。手動で入力してください');
+      }
+    }).catch(function (e) {
+      clearTimeout(timer);
+      if (worker) { worker.terminate().catch(function () {}); worker = null; }
+      if (tok !== ocrToken) return;
+      setOcrBusy(false);
+      showOcr(null);
+      toast(e && e.message === 'load failed'
+        ? '解析ライブラリを読み込めませんでした（オフライン？）。手動で入力してください'
+        : '自動認識できませんでした。手動で入力してください');
+    });
+  }
+
+  var editingId = null;  // 編集中の支出ID（新規入力時は null）
+  function setOp(w) {
+    form.op = w;
+    Array.prototype.forEach.call($('opSeg').children, function (b) {
+      b.classList.toggle('on', b.dataset.who === w);
+    });
+  }
+  function findExp(id) {
+    for (var i = 0; i < data.expenses.length; i++) if (data.expenses[i].id === id) return data.expenses[i];
+    return null;
+  }
+  function openModal(id) {
+    var ex = typeof id === 'string' ? findExp(id) : null;
+    hideDayPop();
+    editingId = ex ? ex.id : null;
+    ocrToken++; setOcrBusy(false); showOcr(null);   // 前回の解析結果・進行中の解析を破棄
+    hideStoreSuggest();
+    $('dateIn').value = ex ? ex.date : selected;
+    updateModalTitle();
+    $('amount').value = ex ? String(ex.amount) : '';
+    $('memo').value = ex ? ex.memo : '';
+    $('err').textContent = '';
+    $('saveBtn').textContent = ex ? 'この内容で確認・上書き保存する' : 'この内容で確認・登録する';
+    clearReview();
+    setPhoto(ex ? ex.photo : null);
+    $('editHint').hidden = !ex;
+    setOp(data.operator === '妻' ? '妻' : data.operator === '夫' ? '夫' : form.op || '夫');
+    // 履歴表示
+    var hb = $('histBox'), hl = $('histList');
+    hl.innerHTML = '';
+    hb.hidden = !ex;
+    if (ex) {
+      $('histSum').textContent = '更新履歴（' + ex.editHistory.length + '件）／ 登録: ' +
+        (ex.createdAt ? ex.createdAt + (ex.createdBy ? '（' + nm(ex.createdBy) + '）' : '') : '記録なし');
+      ex.editHistory.slice().reverse().forEach(function (h) {
+        hl.appendChild(el('li', '', (h.timestamp || '') + (h.updater ? '（' + nm(h.updater) + '）' : '') + ' ' + (h.summary || '')));
+      });
+      if (!ex.editHistory.length) hl.appendChild(el('li', '', 'まだ修正はありません'));
+      form.category = ex.category;
+      if (data.categories.indexOf(ex.category) < 0) data.categories.push(ex.category);
+    }
+    setWho(ex ? ex.who : form.who);
+    renderModalCats();
+    renderStoreSel(ex ? ex.store : '');   // 店名プルダウン＝選択中カテゴリの店名（新規は未選択）。カテゴリ確定後に描画する
+    if (!ex && INFRA_CATS.indexOf(form.category) >= 0) setWho('夫');
+    $('overlay').classList.add('open');
+    setTimeout(function () { $('amount').focus(); }, 50);
+  }
+  function closeModal() {
+    ocrToken++; setOcrBusy(false);   // 進行中の解析結果は破棄
+    clearReview();
+    hideStoreSuggest();
+    $('overlay').classList.remove('open');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+
+  // ---------- イベント ----------
+  function shiftMonth(delta) {
+    var d = new Date(viewYear, viewMonth + delta, 1);
+    viewYear = d.getFullYear(); viewMonth = d.getMonth();
+    renderCalendar();
+  }
+  $('prev').addEventListener('click', function () { shiftMonth(-1); });
+  $('next').addEventListener('click', function () { shiftMonth(1); });
+
+  // 選択日を変更（グリッドは作り直さず、クラスだけ付け替える）
+  function previewDate(key) {
+    if (key === selected) return;
+    var old = $('grid').querySelector('.day.selected');
+    if (old) old.classList.remove('selected');
+    selected = key;
+    var cur = $('grid').querySelector('.day[data-date="' + key + '"]');
+    if (cur) cur.classList.add('selected');
+    renderList();
+  }
+
+  // 日付マスのホバーポップアップ（その日の支出詳細）
+  var dayPop = el('div', 'day-pop');
+  document.body.appendChild(dayPop);
+  var WD = ['日', '月', '火', '水', '木', '金', '土'];
+  function showDayPop(cell) {
+    var key = cell.dataset.date, p = key.split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    var hn = holidayName(key);
+    dayPop.innerHTML = '';
+    var h = el('h4', (hn || d.getDay() === 0) ? 'holiday' : '',
+      Number(p[1]) + '月' + Number(p[2]) + '日（' + WD[d.getDay()] + '）' + (hn ? ' ' + hn : ''));
+    dayPop.appendChild(h);
+    var items = data.expenses.filter(function (x) { return x.date === key; });
+    if (!items.length) {
+      dayPop.appendChild(el('div', 'pe', '支出はありません'));
+    } else {
+      var sum = 0;
+      items.forEach(function (x) {
+        sum += x.amount;
+        var r = el('div', 'pi');
+        r.dataset.id = x.id;
+        r.title = 'クリックして編集';
+        r.appendChild(el('span', 'badge ' + whoCls(x.who), nm(x.who)));
+        var m = el('div', 'pm');
+        var c = el('div', 'pc');
+        var dot = el('i', 'catdot'); dot.style.background = colorOf(x.category);
+        c.appendChild(dot); c.appendChild(document.createTextNode(x.category));
+        var sb3 = storeBadge(x); if (sb3) c.appendChild(sb3);
+        m.appendChild(c);
+        if (x.memo) m.appendChild(el('div', 'memo', x.memo));
+        r.appendChild(m);
+        r.appendChild(el('span', 'py', yen(x.amount)));
+        dayPop.appendChild(r);
+      });
+      dayPop.appendChild(el('div', 'pt', '合計 ' + yen(sum)));
+      dayPop.appendChild(el('div', 'pnote', '✏️ 項目をクリックで編集'));
+    }
+    // 位置：マスの直上を基本に、画面外に出るなら下・左右へ自動調整
+    dayPop.style.left = '0px'; dayPop.style.top = '0px';
+    var r2 = cell.getBoundingClientRect(), w = dayPop.offsetWidth, hh = dayPop.offsetHeight, gap = 8, vw = window.innerWidth, vh = window.innerHeight;
+    var top = r2.top - hh - gap, below = false;
+    if (top < 8) { top = r2.bottom + gap; below = true; }     // 上に収まらなければ下
+    if (top + hh > vh - 8) top = Math.max(8, vh - hh - 8);    // 下にも収まらなければ画面内へ寄せる
+    var left = r2.left + r2.width / 2 - w / 2;
+    left = Math.max(8, Math.min(vw - w - 8, left));           // 左右端の見切れ防止
+    dayPop.style.left = left + 'px';
+    dayPop.style.top = top + 'px';
+    dayPop.classList.toggle('below', below);
+    dayPop.classList.toggle('above', !below);   // マスとの隙間を埋める見えない橋（::before）の向き
+    clearTimeout(popTimer);
+    dayPop.classList.add('show');
+  }
+  // 即時に隠す（クリック・モーダル表示・矢印キー移動など）
+  var popTimer = null;
+  function hideDayPop() { clearTimeout(popTimer); dayPop.classList.remove('show'); }
+  // 少し遅れて隠す：マス→ポップアップへカーソルを移動する間は消えないようにする
+  function hideDayPopSoon() { clearTimeout(popTimer); popTimer = setTimeout(hideDayPop, 250); }
+  $('grid').addEventListener('mouseleave', hideDayPopSoon);
+  dayPop.addEventListener('mouseenter', function () { clearTimeout(popTimer); });
+  dayPop.addEventListener('mouseleave', hideDayPopSoon);
+  window.addEventListener('scroll', function (e) { if (e.target === dayPop || (e.target.nodeType === 1 && dayPop.contains(e.target))) return; hideDayPop(); }, true);
+  // ポップアップ内の支出をクリック → その支出の編集モーダルを直接開く
+  dayPop.addEventListener('click', function (e) {
+    var r = e.target.closest('.pi[data-id]');
+    if (!r) return;
+    var id = r.dataset.id;
+    hideDayPop();
+    openModal(id);
+  });
+
+  $('grid').addEventListener('mouseover', function (e) {
+    var b = e.target.closest('.day[data-date]');
+    if (!b) { hideDayPopSoon(); return; }
+    // ホバーはポップアップ表示のみ。中段の一覧（選択中の日）は、クリックで固定した日のまま変えない
+    if (!$('overlay').classList.contains('open')) showDayPop(b);
+    // 矢印キーをすぐ受け取れるようカレンダーにフォーカス（入力中・モーダル表示中は奪わない）
+    var a = document.activeElement;
+    var typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable);
+    if (!typing && !$('overlay').classList.contains('open') && a !== $('grid')) {
+      $('grid').focus({ preventScroll: true });
+    }
+  });
+  $('grid').addEventListener('click', function (e) {
+    var b = e.target.closest('.day[data-date]');
+    if (!b) return;
+    hideDayPop();
+    if (b.dataset.date === selected) { openModal(); return; }   // すでに固定中の日をもう一度クリック → その日の支出を追加
+    previewDate(b.dataset.date);                                // 初回クリック：その日を「選択中の日」として固定（中段の一覧に表示）
+  });
+
+  // 矢印キーで日付移動（月またぎ対応）
+  document.addEventListener('keydown', function (e) {
+    var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (!step || e.altKey || e.ctrlKey || e.metaKey) return;
+    if ($('viewCal').hidden) return;
+    if (document.querySelector('.overlay.open')) return;
+    var t = document.activeElement;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    e.preventDefault();
+    hideDayPop();
+    var p = selected.split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]) + step);
+    selected = ymd(d);
+    viewYear = d.getFullYear(); viewMonth = d.getMonth();
+    renderCalendar(); renderList();
+  });
+  $('openAdd').addEventListener('click', openModal);
+
+  $('whoSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-who]');
+    if (b) setWho(b.dataset.who);
+  });
+  $('catBtns').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-cat]');
+    if (!b) return;
+    var changed = form.category !== b.dataset.cat;
+    form.category = b.dataset.cat;
+    if (INFRA_CATS.indexOf(form.category) >= 0) setWho('夫');  // 手動で変更も可能
+    renderModalCats();
+    if (changed) syncStoreSel();   // カテゴリが変わったら、店名プルダウンをそのカテゴリの店名リストへ切り替える
+  });
+
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var raw = toHalf($('amount').value);
+    if (ocrBusy) return;   // 解析中は保存しない
+    var ex = editingId ? findExp(editingId) : null;
+    var dateVal = normDate($('dateIn').value);
+    if (!dateVal) { $('err').textContent = '日付は 2026-10-15 の形式で入力してください'; return; }
+    if (!/^\d+$/.test(raw) || (!ex && Number(raw) <= 0)) {
+      $('err').textContent = ex ? '金額は0以上の半角数字で入力してください' : '金額は1以上の半角数字で入力してください';
+      return;
+    }
+    var now = fmtTs(new Date());
+    var op = form.op === '妻' ? '妻' : '夫';
+    data.operator = op;  // 次回の初期値として記憶
+    var memo = $('memo').value.trim();
+    var store = $('storeSel').value || '';
+    if (ex) {
+      var ch = [];
+      if (ex.date !== dateVal) ch.push('日付 ' + ex.date.replace(/-/g, '/') + '→' + dateVal.replace(/-/g, '/'));
+      if (ex.who !== form.who) ch.push('支払者 ' + nm(ex.who) + '→' + nm(form.who));
+      if (ex.category !== form.category) ch.push('カテゴリ ' + ex.category + '→' + form.category);
+      if (ex.amount !== Number(raw)) ch.push('金額 ' + yen(ex.amount) + '→' + yen(Number(raw)));
+      if ((ex.store || '') !== store) ch.push('店名 ' + (ex.store || 'なし') + '→' + (store || 'なし'));
+      if (ex.memo !== memo) ch.push('メモ変更');
+      if ((ex.photo || null) !== (formPhoto || null)) ch.push(!formPhoto ? 'レシート写真 削除' : ex.photo ? 'レシート写真 差替え' : 'レシート写真 追加');
+      if (ch.length) {
+        ex.date = dateVal; ex.who = form.who; ex.category = form.category; ex.amount = Number(raw); ex.store = store; ex.memo = memo; ex.photo = formPhoto || null;
+        ex.updatedAt = now; ex.updatedBy = op;
+        ex.editHistory.push({ timestamp: now, updater: op, summary: ch.join(' / ') });
+      }
+    } else {
+      data.expenses.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        date: dateVal,
+        who: form.who,
+        amount: Number(raw),
+        category: form.category,
+        store: store,
+        memo: memo,
+        photo: formPhoto || null,
+        createdAt: now, createdBy: op,
+        updatedAt: now, updatedBy: op,
+        editHistory: []
+      });
+    }
+    // 日付が別の日・別の月に変わった場合は、その日をカレンダーで選択して結果を確認できるようにする
+    if (dateVal !== selected) {
+      selected = dateVal;
+      var dp = dateVal.split('-');
+      viewYear = Number(dp[0]); viewMonth = Number(dp[1]) - 1;
+    }
+    save();
+    closeModal();
+    renderAll();
+    if ($('overlay8').classList.contains('open')) renderSearch();  // 検索一覧の内容も更新
+  });
+  $('cancel').addEventListener('click', closeModal);
+  $('overlay').addEventListener('click', function (e) { if (e.target === $('overlay')) closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if ($('overlay').classList.contains('open')) e.preventDefault();  // 検索モーダルの上で開いている場合、下のモーダルは閉じない
+    closeModal();
+  });
+
+  // 削除機能は設けず、編集（上書き保存）のみ。取り消しは金額を0に修正する。
+  $('list').addEventListener('click', function (e) {
+    var b = e.target.closest('.edit');
+    if (b) openModal(b.dataset.id);
+  });
+  $('opSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-who]');
+    if (b) setOp(b.dataset.who);
+  });
+
+  // ---------- CSV出力 ----------
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;  // 表計算ソフトの数式として解釈されるのを防ぐ
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  function downloadCsv(items, filename) {
+    var rows = [['日付', '支払者', 'カテゴリ', '店名', '金額', 'メモ', '最終更新日時', '最終更新者', 'レシート写真']];  // 写真データ自体は出力しない（あり/なしのみ）
+    items.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).forEach(function (x) {
+      rows.push([x.date, nm(x.who), x.category, x.store || '', x.amount, x.memo, x.updatedAt || x.createdAt || '', x.updatedBy ? nm(x.updatedBy) : '', x.photo ? 'あり' : 'なし']);
+    });
+    var text = rows.map(function (r, i) {
+      return r.map(function (c, j) { return (i > 0 && j === 4) ? String(c) : csvCell(c); }).join(',');
+    }).join('\r\n') + '\r\n';
+    var blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function openCsv() {
+    var prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    var n = data.expenses.filter(function (x) { return x.date.indexOf(prefix) === 0; }).length;
+    $('csvMonth').innerHTML = '';
+    $('csvMonth').appendChild(document.createTextNode('📅 表示中の月（' + viewYear + '年' + (viewMonth + 1) + '月）'));
+    $('csvMonth').appendChild(el('small', '', n + '件 ／ kakeibo_' + viewYear + '-' + pad(viewMonth + 1) + '.csv'));
+    var t = new Date(), ds = t.getFullYear() + pad(t.getMonth() + 1) + pad(t.getDate());
+    $('csvAll').innerHTML = '';
+    $('csvAll').appendChild(document.createTextNode('🗂 全期間'));
+    $('csvAll').appendChild(el('small', '', data.expenses.length + '件 ／ kakeibo_all_' + ds + '.csv'));
+    $('overlay6').classList.add('open');
+  }
+  function closeCsv() { $('overlay6').classList.remove('open'); }
+  $('openCsv').addEventListener('click', openCsv);
+  $('csvCancel').addEventListener('click', closeCsv);
+  $('overlay6').addEventListener('click', function (e) { if (e.target === $('overlay6')) closeCsv(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCsv(); });
+  $('csvMonth').addEventListener('click', function () {
+    var prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    downloadCsv(data.expenses.filter(function (x) { return x.date.indexOf(prefix) === 0; }), 'kakeibo_' + viewYear + '-' + pad(viewMonth + 1) + '.csv');
+    closeCsv();
+  });
+  $('csvAll').addEventListener('click', function () {
+    var t = new Date();
+    downloadCsv(data.expenses, 'kakeibo_all_' + t.getFullYear() + pad(t.getMonth() + 1) + pad(t.getDate()) + '.csv');
+    closeCsv();
+  });
+
+  // ---------- カテゴリ編集 ----------
+  var editing = null;  // 編集中の旧カテゴリ名
+  function setEditColor(c) {
+    $('editColor').value = c;
+    Array.prototype.forEach.call($('editColorRow').querySelectorAll('.preset'), function (b) {
+      b.classList.toggle('on', b.dataset.c.toLowerCase() === c.toLowerCase());
+    });
+  }
+  PRESETS.forEach(function (c) {
+    var b = el('button', 'preset');
+    b.type = 'button';
+    b.dataset.c = c;
+    b.style.background = c;
+    b.setAttribute('aria-label', '色 ' + c);
+    $('editColorRow').appendChild(b);
+  });
+  $('editColorRow').addEventListener('click', function (e) {
+    var b = e.target.closest('.preset');
+    if (b) setEditColor(b.dataset.c);
+  });
+  $('editColor').addEventListener('input', function () { setEditColor($('editColor').value); });
+
+  function showWarn(on) {
+    $('editWarn').classList.toggle('open', on);
+    $('editActions').style.display = on ? 'none' : '';
+  }
+  function openEdit(name) {
+    editing = name;
+    $('editName').value = name;
+    $('editErr').textContent = '';
+    showWarn(false);
+    setEditColor(colorOf(name));
+    syncMoveBtns();
+    $('overlay3').classList.add('open');
+    setTimeout(function () { $('editName').focus(); }, 50);
+  }
+  function closeEdit() {
+    $('overlay3').classList.remove('open');
+    editing = null;
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+  // 並び順を変更（配列の順序のみ変更。支出はカテゴリ名で紐付くため影響なし）
+  function moveCat(from, to) {
+    var cats = data.categories;
+    if (from < 0 || from >= cats.length) return false;
+    to = Math.max(0, Math.min(cats.length - 1, to));
+    if (from === to) return false;
+    cats.splice(to, 0, cats.splice(from, 1)[0]);
+    save();
+    renderAll();
+    renderModalCats();
+    if (!$('viewYear').hidden) renderYear();
+    return true;
+  }
+  function syncMoveBtns() {
+    var i = data.categories.indexOf(editing);
+    $('movePrev').disabled = i <= 0;
+    $('moveNext').disabled = i < 0 || i >= data.categories.length - 1;
+  }
+  $('moveNext').addEventListener('click', function () {
+    moveCat(data.categories.indexOf(editing), data.categories.indexOf(editing) + 1); syncMoveBtns();
+  });
+  $('movePrev').addEventListener('click', function () {
+    moveCat(data.categories.indexOf(editing), data.categories.indexOf(editing) - 1); syncMoveBtns();
+  });
+
+  // ドラッグ＆ドロップ
+  var dragCat = null, dropIdx = -1, justDragged = false;
+  function clearDrop() {
+    Array.prototype.forEach.call($('chips').querySelectorAll('.drop-before, .drop-after'), function (c) {
+      c.classList.remove('drop-before', 'drop-after');
+    });
+  }
+  $('chips').addEventListener('dragstart', function (e) {
+    var c = e.target.closest('.chip[data-cat]');
+    if (!c) return;
+    dragCat = c.dataset.cat;
+    justDragged = true;
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', dragCat); } catch (err) {}
+    setTimeout(function () { c.classList.add('dragging'); }, 0);
+  });
+  $('chips').addEventListener('dragover', function (e) {
+    if (dragCat === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var c = e.target.closest('.chip[data-cat]');
+    clearDrop();
+    if (!c) return;
+    var r = c.getBoundingClientRect();
+    var after = e.clientX > r.left + r.width / 2;
+    var idx = data.categories.indexOf(c.dataset.cat);
+    dropIdx = after ? idx + 1 : idx;   // 挿入位置（元配列上の隙間番号）
+    c.classList.add(after ? 'drop-after' : 'drop-before');
+  });
+  $('chips').addEventListener('drop', function (e) {
+    if (dragCat === null) return;
+    e.preventDefault();
+    var from = data.categories.indexOf(dragCat), to = dropIdx;
+    clearDrop();
+    if (to >= 0 && from >= 0) {
+      if (to > from) to--;   // 取り除いた後の位置に補正
+      moveCat(from, to);
+    }
+    endDrag();  // 再描画で元のバッジが消えるため dragend が届かない場合に備える
+  });
+  function endDrag() {
+    dragCat = null; dropIdx = -1;
+    clearDrop();
+    Array.prototype.forEach.call($('chips').querySelectorAll('.dragging'), function (c) { c.classList.remove('dragging'); });
+    setTimeout(function () { justDragged = false; }, 100);  // ドラッグ直後のクリックでモーダルを開かない
+  }
+  $('chips').addEventListener('dragend', endDrag);
+  $('chips').addEventListener('click', function (e) {
+    if (justDragged) return;
+    var c = e.target.closest('.chip[data-cat]');
+    if (c) openEdit(c.dataset.cat);
+  });
+  // 保存する → 検証 → 注意喚起を表示
+  $('editForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('editName').value.trim();
+    if (!name) { $('editErr').textContent = 'カテゴリ名を入力してください'; return; }
+    if (name !== editing && data.categories.indexOf(name) >= 0) {
+      $('editErr').textContent = 'その名前のカテゴリはすでにあります'; return;
+    }
+    $('editErr').textContent = '';
+    showWarn(true);
+  });
+  $('warnBack').addEventListener('click', function () { showWarn(false); });
+  $('editCancel').addEventListener('click', closeEdit);
+  $('overlay3').addEventListener('click', function (e) { if (e.target === $('overlay3')) closeEdit(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeEdit(); });
+
+  // OK（更新する）→ マスター・全支出データを一括更新して再描画
+  $('warnOk').addEventListener('click', function () {
+    var oldName = editing, name = $('editName').value.trim(), color = $('editColor').value;
+    var idx = data.categories.indexOf(oldName);
+    if (idx < 0 || !name) { closeEdit(); return; }
+    if (name !== oldName && data.categories.indexOf(name) >= 0) { showWarn(false); return; }
+    data.categories[idx] = name;
+    if (name !== oldName) {
+      delete data.colors[oldName];
+      data.expenses.forEach(function (x) { if (x.category === oldName) x.category = name; });
+      if (form.category === oldName) form.category = name;
+      if (data.stores[oldName]) { data.stores[name] = data.stores[oldName]; delete data.stores[oldName]; }   // 店名リストもカテゴリ名に追従
+    }
+    data.colors[name] = color;
+    save();
+    closeEdit();
+    renderAll();
+    renderModalCats();
+    renderStoreSel($('storeSel').value);
+  });
+
+  function addCategory() {
+    var name = $('newCat').value.trim();
+    if (!name) { $('newCat').focus(); return; }
+    if (data.categories.indexOf(name) >= 0) { alert('そのカテゴリはすでにあります'); return; }
+    data.categories.push(name);
+    data.colors[name] = $('newColor').value;
+    save();
+    $('newCat').value = '';
+    pickColor(PRESETS[data.categories.length % PRESETS.length]);  // 次の候補色
+    renderCategories();
+    renderModalCats();
+    renderList();
+  }
+  function pickColor(c) {
+    $('newColor').value = c;
+    Array.prototype.forEach.call($('colorRow').querySelectorAll('.preset'), function (b) {
+      b.classList.toggle('on', b.dataset.c === c);
+    });
+  }
+  PRESETS.forEach(function (c) {
+    var b = el('button', 'preset');
+    b.type = 'button';
+    b.dataset.c = c;
+    b.style.background = c;
+    b.setAttribute('aria-label', '色 ' + c);
+    $('colorRow').appendChild(b);
+  });
+  $('colorRow').addEventListener('click', function (e) {
+    var b = e.target.closest('.preset');
+    if (b) pickColor(b.dataset.c);
+  });
+  $('newColor').addEventListener('input', function () { pickColor($('newColor').value); });
+  pickColor(PRESETS[data.categories.length % PRESETS.length]);
+  $('addCat').addEventListener('click', addCategory);
+  $('newCat').addEventListener('keydown', function (e) {
+    // 日本語変換の確定Enterでは追加しない
+    if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      addCategory();
+    }
+  });
+
+  applyNames();
+  // ---------- 検索・絞り込み ----------
+  var sr = { who: '', p: 'month' };
+  function srSetSeg(box, attr, val) {
+    Array.prototype.forEach.call(box.children, function (b) { b.classList.toggle('on', b.dataset[attr] === val); });
+  }
+  function srFillCats(keep) {
+    var sel = $('srCat');
+    sel.innerHTML = '';
+    var o = document.createElement('option');
+    o.value = ''; o.textContent = 'すべてのカテゴリ';
+    sel.appendChild(o);
+    var names = data.categories.slice();
+    data.expenses.forEach(function (x) { if (names.indexOf(x.category) < 0) names.push(x.category); });
+    names.forEach(function (c) {
+      var op = document.createElement('option');
+      op.value = c; op.textContent = c;
+      sel.appendChild(op);
+    });
+    sel.value = names.indexOf(keep) >= 0 ? keep : '';
+  }
+  function srLabels() {
+    Array.prototype.forEach.call($('srWho').children, function (b) { if (b.dataset.who) b.textContent = nm(b.dataset.who); });
+  }
+  function renderSearch() {
+    var kw = $('srKey').value.trim().toLowerCase();
+    var cat = $('srCat').value;
+    $('srDot').style.background = cat ? colorOf(cat) : '#cfd8d5';
+    var prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+    $('srPeriod').children[0].textContent = '表示中の月（' + viewYear + '/' + (viewMonth + 1) + '）';
+    var items = data.expenses.filter(function (x) {
+      if (sr.p === 'month' && x.date.indexOf(prefix) !== 0) return false;
+      if (sr.who && x.who !== sr.who) return false;
+      if (cat && x.category !== cat) return false;
+      if (kw && (x.memo + ' ' + x.category + ' ' + (x.store || '')).toLowerCase().indexOf(kw) < 0) return false;
+      return true;
+    }).sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });  // 新しい順
+    var sum = items.reduce(function (s, x) { return s + x.amount; }, 0);
+    $('srSum').textContent = '該当件数：' + items.length + '件 ／ 合計金額：' + yen(sum);
+    var list = $('srList');
+    list.innerHTML = '';
+    if (!items.length) { list.appendChild(el('div', 'empty-msg', '条件に一致する支出は見つかりませんでした')); return; }
+    items.forEach(function (x) {
+      var row = el('div', 'drow sr-item');
+      row.appendChild(el('div', 'sdate', x.date.replace(/-/g, '/')));
+      var mid = el('div', 'dmid');
+      mid.appendChild(el('span', 'badge ' + whoCls(x.who), nm(x.who)));
+      var cb = el('span', 'cbadge', x.category);
+      cb.style.background = colorOf(x.category);
+      cb.style.marginLeft = '6px';
+      mid.appendChild(cb);
+      var sb4 = storeBadge(x); if (sb4) mid.appendChild(sb4);
+      if (x.memo) mid.appendChild(el('div', 'memo', x.memo));
+      mid.appendChild(updRow(x));
+      var rb = rcptBadge(x); if (rb) mid.appendChild(rb);
+      row.appendChild(mid);
+      row.appendChild(el('div', 'yen', yen(x.amount)));
+      var ed = el('button', 'edit', '✏️');
+      ed.type = 'button'; ed.dataset.id = x.id; ed.setAttribute('aria-label', '編集');
+      row.appendChild(ed);
+      list.appendChild(row);
+    });
+  }
+  function openSearch() {
+    sr.who = ''; sr.p = 'month';
+    $('srKey').value = '';
+    srLabels(); srFillCats('');
+    srSetSeg($('srWho'), 'who', ''); srSetSeg($('srPeriod'), 'p', 'month');
+    renderSearch();
+    $('overlay8').classList.add('open');
+    $('srBody').scrollTop = 0;
+  }
+  function closeSearch() { $('overlay8').classList.remove('open'); }
+  $('openSearch').addEventListener('click', openSearch);
+  $('srClose').addEventListener('click', closeSearch);
+  $('overlay8').addEventListener('click', function (e) { if (e.target === $('overlay8')) closeSearch(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !e.defaultPrevented) closeSearch();
+  });
+  $('srKey').addEventListener('input', renderSearch);
+  $('srCat').addEventListener('change', renderSearch);
+  $('srWho').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-who]');
+    if (!b) return;
+    sr.who = b.dataset.who; srSetSeg($('srWho'), 'who', sr.who); renderSearch();
+  });
+  $('srPeriod').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-p]');
+    if (!b) return;
+    sr.p = b.dataset.p; srSetSeg($('srPeriod'), 'p', sr.p); renderSearch();
+  });
+  $('srReset').addEventListener('click', function () {
+    sr.who = ''; sr.p = 'month';
+    $('srKey').value = '';
+    srFillCats('');
+    srSetSeg($('srWho'), 'who', ''); srSetSeg($('srPeriod'), 'p', 'month');
+    renderSearch();
+  });
+  $('srList').addEventListener('click', function (e) {
+    var b = e.target.closest('.edit');
+    if (b) openModal(b.dataset.id);
+  });
+})();
+</script>
+</body>
+</html>
