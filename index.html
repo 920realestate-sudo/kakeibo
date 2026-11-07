@@ -3075,7 +3075,10 @@ input:focus { outline: none; border-color: var(--accent); }
       if (ex.category !== form.category) ch.push('カテゴリ ' + ex.category + '→' + form.category);
       if (ex.amount !== Number(raw)) ch.push('金額 ' + yen(ex.amount) + '→' + yen(Number(raw)));
       if ((ex.store || '') !== store) ch.push('店名 ' + (ex.store || 'なし') + '→' + (store || 'なし'));
-      if (ex.memo !== memo) ch.push('メモ変更');
+      if (ex.memo !== memo) {   // 変更前→変更後を残す（長いメモは先頭だけ）
+        var cut = function (s) { s = s || 'なし'; return s.length > 16 ? s.slice(0, 16) + '…' : s; };
+        ch.push('メモ ' + cut(ex.memo) + '→' + cut(memo));
+      }
       if ((ex.photo || null) !== (formPhoto || null)) ch.push(!formPhoto ? 'レシート写真 削除' : ex.photo ? 'レシート写真 差替え' : 'レシート写真 追加');
       if (ch.length) {
         ex.date = dateVal; ex.who = form.who; ex.category = form.category; ex.amount = Number(raw); ex.store = store; ex.memo = memo; ex.photo = formPhoto || null;
