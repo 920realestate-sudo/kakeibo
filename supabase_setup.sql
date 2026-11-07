@@ -17,8 +17,14 @@ create table if not exists public.expenses (
   updated_at    text not null default '',
   history       jsonb not null default '[]'::jsonb,
   -- 一覧取得時に写真本体を転送せずに「写真あり」を判定するための列
-  has_image     boolean generated always as (receipt_image is not null) stored
+  has_image     boolean generated always as (receipt_image is not null) stored,
+  -- 写真の参照（なし=null／行内の旧形式 Base64='data'／Storage 上のパス）。一覧取得で写真本体を転送せずに差分を判定する
+  image_ref     text generated always as (case when receipt_image like 'data:%' then 'data' else receipt_image end) stored
 );
+
+-- 既存のテーブル（以前のSQLで作成済み）にも image_ref 列を追加（新規作成時は何もしない）
+alter table public.expenses add column if not exists image_ref text
+  generated always as (case when receipt_image like 'data:%' then 'data' else receipt_image end) stored;
 
 -- 2) 共有設定テーブル（カテゴリ・色・店舗マスター・月別予算・タイトル/名前を key ごとに保存）
 create table if not exists public.household (
@@ -63,3 +69,15 @@ begin
     alter publication supabase_realtime add table public.household;
   end if;
 end $$;
+
+-- 5) レシート写真の保管場所（Storage）。非公開バケット＋「読む・追加する」だけを許可（削除・上書きは不可）
+--    写真本体はここに置き、支出の行にはパス（r/<id>_<hash>.jpg）だけを持たせる＝データベースが肥大化しない
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('receipts', 'receipts', false, 3145728, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update
+  set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "anon read receipts"   on storage.objects;
+drop policy if exists "anon insert receipts" on storage.objects;
+create policy "anon read receipts"   on storage.objects for select to anon using (bucket_id = 'receipts');
+create policy "anon insert receipts" on storage.objects for insert to anon with check (bucket_id = 'receipts');

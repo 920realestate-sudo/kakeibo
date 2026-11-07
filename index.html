@@ -881,7 +881,8 @@ input:focus { outline: none; border-color: var(--accent); }
     if (x.who !== '妻') x.who = '夫';
     if (!x.id) x.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     if (typeof x.store !== 'string') x.store = '';   // 店名（旧データは空）
-    if (typeof x.photo !== 'string' || x.photo.indexOf('data:image/') !== 0) x.photo = null;  // レシート写真（Base64）
+    // レシート写真：data URL（Base64。端末内・未アップロード）か、Storage 上のパス（'r/<id>_<hash>.jpg'）
+    if (typeof x.photo !== 'string' || !(x.photo.indexOf('data:image/') === 0 || /^r\/[\w.\-]+$/.test(x.photo))) x.photo = null;
     if (typeof x.createdAt !== 'string') x.createdAt = '';
     if (x.createdBy !== '夫' && x.createdBy !== '妻') x.createdBy = '';
     if (typeof x.updatedAt !== 'string') x.updatedAt = x.createdAt;
@@ -2005,12 +2006,18 @@ input:focus { outline: none; border-color: var(--accent); }
   }
   // ---------- レシート写真 ----------
   var formPhoto = null;   // 入力モーダルで保持中の写真（data URL）または null
+  var formPhotoBase = null, photoReq = 0;   // formPhotoBase＝編集を開いた時点の写真（変更の有無の判定用）
   function setPhoto(p) {
     formPhoto = p || null;
     $('photoPrev').hidden = !formPhoto;
     $('rcSide').hidden = !formPhoto;                        // 写真があれば画像とフォームを見比べられる配置にする
     $('form').classList.toggle('has-photo', !!formPhoto);
-    if (formPhoto) $('sideImg').src = formPhoto; else $('sideImg').removeAttribute('src');
+    var req = ++photoReq;
+    $('sideImg').removeAttribute('src');
+    if (formPhoto) {   // Storage 上の写真は取得してから表示する（取得済みなら端末のキャッシュから即時）
+      photoSrc(formPhoto).then(function (u) { if (req === photoReq && formPhoto && u) $('sideImg').src = u; })
+        .catch(function () { if (req === photoReq) toast('写真を読み込めません（オフライン？）。接続すると表示されます'); });
+    }
     $('photoBtn').textContent = formPhoto ? '📷 撮り直す' : '📷 レシート写真を添付';
     if (!formPhoto) clearReview();
   }
@@ -2071,13 +2078,17 @@ input:focus { outline: none; border-color: var(--accent); }
   // レシートプレビュー
   function openReceipt(id, src) {
     var x = id ? findExp(id) : null;
-    var url = src || (x && x.photo);
-    if (!url) return;
+    var ref = src || (x && x.photo);
+    if (!ref) return;
     $('rcImg').classList.remove('zoomed');
-    $('rcImg').src = url;
+    $('rcImg').removeAttribute('src');
     $('rcCap').textContent = x ? x.date.replace(/-/g, '/') + '　' + x.category + '　' + yen(x.amount) + (x.memo ? '　' + x.memo : '') : 'プレビュー';
     $('overlay9').classList.add('open');
+    var req = ++rcReq;
+    photoSrc(ref).then(function (u) { if (req === rcReq && $('overlay9').classList.contains('open') && u) $('rcImg').src = u; })
+      .catch(function () { if (req === rcReq) { closeReceipt(); toast('写真を読み込めません（オフライン？）。接続すると表示されます'); } });
   }
+  var rcReq = 0;
   function closeReceipt() { $('overlay9').classList.remove('open'); $('rcImg').removeAttribute('src'); }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('.rcpt[data-id]');
@@ -2879,6 +2890,7 @@ input:focus { outline: none; border-color: var(--accent); }
     $('saveBtn').textContent = ex ? 'この内容で確認・上書き保存する' : 'この内容で確認・登録する';
     clearReview();
     setPhoto(ex ? ex.photo : null);
+    formPhotoBase = ex ? ex.photo : null;
     $('editHint').hidden = !ex;
     setOp(data.operator === '妻' ? '妻' : data.operator === '夫' ? '夫' : form.op || '夫');
     // 履歴表示
@@ -3079,9 +3091,12 @@ input:focus { outline: none; border-color: var(--accent); }
         var cut = function (s) { s = s || 'なし'; return s.length > 16 ? s.slice(0, 16) + '…' : s; };
         ch.push('メモ ' + cut(ex.memo) + '→' + cut(memo));
       }
-      if ((ex.photo || null) !== (formPhoto || null)) ch.push(!formPhoto ? 'レシート写真 削除' : ex.photo ? 'レシート写真 差替え' : 'レシート写真 追加');
+      // 写真は「開いた時点から変えたか」で判定（バックグラウンドで data URL → Storage パスに置き換わっても変更扱いにしない）
+      var photoChanged = (formPhoto || null) !== (formPhotoBase || null);
+      if (photoChanged) ch.push(!formPhoto ? 'レシート写真 削除' : formPhotoBase ? 'レシート写真 差替え' : 'レシート写真 追加');
       if (ch.length) {
-        ex.date = dateVal; ex.who = form.who; ex.category = form.category; ex.amount = Number(raw); ex.store = store; ex.memo = memo; ex.photo = formPhoto || null;
+        ex.date = dateVal; ex.who = form.who; ex.category = form.category; ex.amount = Number(raw); ex.store = store; ex.memo = memo;
+        if (photoChanged) ex.photo = formPhoto || null;
         ex.updatedAt = now; ex.updatedBy = op;
         ex.editHistory.push({ timestamp: now, updater: op, summary: ch.join(' / ') });
       }
@@ -3511,8 +3526,9 @@ input:focus { outline: none; border-color: var(--accent); }
     } catch (e) {}
   })();
 
+  function msgRaw(e) { return e && (e.message || e.error_description || e.details) ? String(e.message || e.error_description || e.details) : String(e); }
   function msgOf(e) {
-    var s = e && (e.message || e.error_description || e.details) ? String(e.message || e.error_description || e.details) : String(e);
+    var s = msgRaw(e);
     if ((e && e.code === 'PGRST205') || /schema cache|does not exist|Could not find the table/i.test(s)) return 'テーブルが見つかりません。SQL（テーブル作成）を実行したか確認してください';
     if (/Invalid API key|JWT|apikey/i.test(s) || (e && (e.status === 401 || e.status === 403))) return 'キーが正しくないか、権限がありません（anon key と RLS ポリシーを確認）';
     if (/Failed to fetch|NetworkError|Load failed/i.test(s)) return '通信できません（オフライン、または Project URL の誤り）';
@@ -3549,9 +3565,74 @@ input:focus { outline: none; border-color: var(--accent); }
       r.created_at, r.created_by, r.updated_at, r.updated_by,
       (r.history || []).map(function (h) { return [h.timestamp, h.updater, h.summary]; })]);
   }
-  function lightSig(r, hasImg) {   // 写真と履歴の中身を除いた軽い比較用（一覧取得では写真を取らない）
+  // 写真の参照：なし=null／端末内の Base64=「data」／Storage 上=そのパス
+  function localRef(x) { return x.photo ? (x.photo.indexOf('data:') === 0 ? 'data' : x.photo) : null; }
+  function remoteRef(r) { return hasRefCol ? (r.image_ref || null) : (r.has_image ? 'data' : null); }
+  function lightSig(r, ref) {   // 写真本体と履歴の中身を除いた軽い比較用（一覧取得では写真を取らない）
     return canon([r.date, Number(r.amount), r.category, r.store, r.memo, r.payer, r.created_at || '', r.created_by || '',
-      r.updated_at || '', r.updated_by || '', (r.history || []).length, !!hasImg]);
+      r.updated_at || '', r.updated_by || '', (r.history || []).length, ref || null]);
+  }
+
+  // ----- 写真（Storage）：本体は Supabase Storage に置き、行にはパスだけ持つ。端末では取得した写真を IndexedDB に控える -----
+  var BUCKET = 'receipts', hasRefCol = true, photoMem = {}, photoErr = '';
+  function idb() {
+    return new Promise(function (resolve, reject) {
+      try {
+        var rq = indexedDB.open('kakeibo_photos', 1);
+        rq.onupgradeneeded = function () { rq.result.createObjectStore('p'); };
+        rq.onsuccess = function () { resolve(rq.result); };
+        rq.onerror = function () { reject(rq.error); };
+      } catch (e) { reject(e); }
+    });
+  }
+  function idbGet(k) {
+    return idb().then(function (db) { return new Promise(function (res) { var r = db.transaction('p').objectStore('p').get(k); r.onsuccess = function () { res(r.result || null); }; r.onerror = function () { res(null); }; }); }, function () { return null; });
+  }
+  function idbPut(k, blob) {
+    return idb().then(function (db) { return new Promise(function (res) { var t = db.transaction('p', 'readwrite'); t.objectStore('p').put(blob, k); t.oncomplete = t.onerror = t.onabort = function () { res(); }; }); }, function () {});
+  }
+  // 写真の表示用 URL を返す（data URL はそのまま。パスは メモリ → 端末キャッシュ → Storage の順に探す）
+  function photoSrc(p) {
+    if (!p) return Promise.resolve(null);
+    if (p.indexOf('data:') === 0) return Promise.resolve(p);
+    if (photoMem[p]) return Promise.resolve(photoMem[p]);
+    return idbGet(p).then(function (blob) {
+      if (blob) return blob;
+      if (!sb) throw new Error('offline');
+      return sb.storage.from(BUCKET).download(p).then(function (r) {
+        if (r.error || !r.data) throw (r.error || new Error('no data'));
+        idbPut(p, r.data);
+        return r.data;
+      });
+    }).then(function (blob) { return (photoMem[p] = URL.createObjectURL(blob)); });
+  }
+  function dataUrlToBlob(u) {
+    var m = /^data:([^;,]+)(;base64)?,(.*)$/.exec(u);
+    var bin = atob(m[3]), a = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+    return new Blob([a], { type: m[1] });
+  }
+  function hashStr(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+  // 端末内の Base64 写真を Storage へ送り、行にはパスだけ残す（失敗しても支出データの同期は止めない）
+  async function uploadPhotos() {
+    if (!hasRefCol) return;   // 旧スキーマ（SQL 未更新）のときは、従来どおり行に Base64 を持たせる
+    var changed = false;
+    photoErr = '';
+    var list = data.expenses.filter(function (x) { return x.photo && x.photo.indexOf('data:') === 0; });
+    for (var i = 0; i < list.length; i++) {
+      var x = list[i], src = x.photo;
+      var path = 'r/' + x.id + '_' + hashStr(src) + '.jpg';   // 内容から決まる名前＝複数端末が同時に移行しても同じ場所に収まる
+      try {
+        var blob = dataUrlToBlob(src);
+        var res = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+        if (res.error && !(String(res.error.statusCode) === '409' || /already exists|Duplicate/i.test(res.error.message || ''))) throw res.error;
+        if (x.photo === src) { x.photo = path; changed = true; idbPut(path, blob); }   // アップロード中に写真が差し替えられていなければ置き換える
+      } catch (e) {
+        photoErr = /Bucket not found|not found/i.test((e && e.message) || '') ? '写真の保管場所（Storage）が未作成です。SQL を再実行してください' : '写真のアップロードに失敗: ' + msgOf(e);
+        break;
+      }
+    }
+    if (changed) saveLocal();
   }
   function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
   function refreshViews() {
@@ -3575,10 +3656,17 @@ input:focus { outline: none; border-color: var(--accent); }
   async function flush() {
     if (!sb || !sbReady) return;
     if (flushing) { flushAgain = true; return; }
+    flushing = true;
+    try { await uploadPhotos(); } catch (e) { photoErr = '写真のアップロードに失敗: ' + msgOf(e); }   // 先に写真を Storage へ（行にはパスだけ送る）
+    flushing = false;
     var ex = [], hs = [];
     data.expenses.forEach(function (x) { var r = toRow(x), s = rowSig(r); if (pushed['e:' + x.id] !== s) ex.push({ r: r, s: s }); });
     HOUSE_KEYS.forEach(function (k) { var s = canon(data[k]); if (pushed['h:' + k] !== s) hs.push({ k: k, s: s }); });
-    if (!ex.length && !hs.length) { if (!reconciling) setSync('ok'); return; }
+    if (!ex.length && !hs.length) {
+      if (photoErr) { setSync('err', photoErr); armRetry(); }
+      else if (!reconciling) setSync('ok');
+      return;
+    }
     flushing = true;
     setSync('busy');
     try {
@@ -3595,7 +3683,8 @@ input:focus { outline: none; border-color: var(--accent); }
         hs.forEach(function (h) { pushed['h:' + h.k] = h.s; });
       }
       sbDown = false;
-      setSync('ok');
+      if (photoErr) { setSync('err', photoErr); armRetry(); }   // 支出データは同期できたが、写真だけ後で再試行
+      else setSync('ok');
     } catch (e) {
       setSync('err', msgOf(e));
       armRetry();
@@ -3641,8 +3730,13 @@ input:focus { outline: none; border-color: var(--accent); }
     return R;   // settings（タイトル・名前）はクラウド優先
   }
   async function pull() {
-    var cols = 'id,date,amount,category,store,memo,payer,created_at,created_by,updated_at,updated_by,history,has_image';
-    var r1 = await sb.from('expenses').select(cols);
+    var base = 'id,date,amount,category,store,memo,payer,created_at,created_by,updated_at,updated_by,history,has_image';
+    hasRefCol = true;   // 同期のたびに再確認（SQL を更新したら、次の同期から新方式になる）
+    var r1 = await sb.from('expenses').select(base + (hasRefCol ? ',image_ref' : ''));
+    if (r1.error && hasRefCol && /image_ref/.test(msgRaw(r1.error))) {   // SQL（写真Storage対応）が未実行の古いスキーマ：従来方式（行に Base64）で動かす
+      hasRefCol = false;
+      r1 = await sb.from('expenses').select(base);
+    }
     if (r1.error) throw r1.error;
     var r2 = await sb.from('household').select('key,value');
     if (r2.error) throw r2.error;
@@ -3653,7 +3747,9 @@ input:focus { outline: none; border-color: var(--accent); }
       var x = findExp(r.id);
       if (!x) { need.push(r.id); return; }
       var lr = toRow(x);
-      if (lightSig(lr, !!x.photo) === lightSig(r, r.has_image)) { pushed['e:' + x.id] = rowSig(lr); return; }   // 一致
+      var lref = localRef(x), rref = remoteRef(r);
+      if (lightSig(lr, lref) === lightSig(r, rref)) { pushed['e:' + x.id] = rowSig(lr); return; }   // 一致
+      if (lref && lref !== 'data' && rref === 'data' && lightSig(lr, null) === lightSig(r, null)) return;   // この端末だけ Storage 移行済み → あとで行を更新する
       if ((x.updatedAt || '') > (r.updated_at || '')) return;   // 端末側が新しい → あとで送信される
       need.push(r.id);                                          // クラウド側が新しい（または同時刻）→ 取り込む
     });
