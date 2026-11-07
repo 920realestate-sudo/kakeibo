@@ -1,7 +1,6 @@
 {
   "name": "ふたりの家計簿",
   "short_name": "家計簿",
-  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

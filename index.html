@@ -12,6 +12,7 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>ふたりの家計簿</title>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root {
   --bg: #f4f7f6;
@@ -426,6 +427,18 @@ input:focus { outline: none; border-color: var(--accent); }
 @media (min-width: 560px) { .overlay { align-items: center; } .modal { border-radius: 20px; } }
 .modal h3 { margin: 0 0 10px; font-size: 17px; }
 .field { margin-bottom: 10px; }
+/* クラウド同期の状態表示と設定欄 */
+.sync-pill { border: 1px solid var(--line); background: #fff; color: var(--sub); border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; margin-top: 2px; cursor: pointer; font-family: inherit; }
+.sync-pill.ok { color: #247c70; background: #e3f4f1; border-color: #bfe6df; }
+.sync-pill.busy { color: #8a6d1d; background: #fff6dc; border-color: #f1e1a8; }
+.sync-pill.err { color: #b42318; background: #fdecea; border-color: #f5c2bd; }
+.sync-box { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.sync-box h4 { margin: 0 0 4px; font-size: 14px; }
+.sync-box .hint { font-size: 11px; color: var(--sub); margin: 0 0 8px; line-height: 1.5; }
+.sync-box input { width: 100%; font-size: 13px; }
+.sync-box .srow { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.sync-box .srow button { flex: 1 1 auto; }
+.sync-msg { font-size: 12px; margin-top: 6px; min-height: 16px; color: var(--sub); overflow-wrap: anywhere; }
 .field label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 4px; font-weight: 600; }
 .seg { display: flex; gap: 8px; }
 /* グラフ用の .seg（height:100% 等）が入力モーダルのボタン群に波及して縦に伸びるのを防ぐ */
@@ -458,6 +471,7 @@ input:focus { outline: none; border-color: var(--accent); }
       <button type="button" class="ghost sm" id="openSearch">🔍 検索・絞り込み</button>
       <button type="button" class="ghost sm" id="openCsv">📥 CSV出力</button>
       <button type="button" class="ghost sm" id="openSettings">⚙️ 設定</button>
+      <button type="button" class="sync-pill" id="syncPill" title="クラウド同期の状態（タップで設定）">☁ この端末のみ</button>
     </div>
   </div>
 
@@ -776,6 +790,19 @@ input:focus { outline: none; border-color: var(--accent); }
       <button type="button" class="ghost" id="setCancel">キャンセル</button>
       <button type="submit" class="primary">保存する</button>
     </div>
+    <div class="sync-box">
+      <h4>☁ クラウド同期（Supabase）</h4>
+      <p class="hint">2台以上の端末で同じ家計簿を共有します。Supabase の Project URL と anon key を入力して「接続する」を押してください。未接続のときは、この端末の中だけに保存されます。</p>
+      <div class="field"><label for="sbUrl">Project URL</label><input type="text" inputmode="url" id="sbUrl" placeholder="https://xxxx.supabase.co" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="field"><label for="sbKey">anon public key</label><input type="text" id="sbKey" placeholder="eyJ..." autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="srow">
+        <button type="button" class="primary" id="sbConnect">接続する</button>
+        <button type="button" class="ghost" id="sbNow">今すぐ同期</button>
+        <button type="button" class="ghost" id="sbLink">他の端末用リンクをコピー</button>
+        <button type="button" class="ghost" id="sbOff">切断</button>
+      </div>
+      <div class="sync-msg" id="sbMsg"></div>
+    </div>
   </form>
 </div>
 
@@ -952,6 +979,7 @@ input:focus { outline: none; border-color: var(--accent); }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (e) { alert('保存に失敗しました（ブラウザの保存領域が使えません）'); }
+    scheduleFlush();   // クラウド同期が有効なら、変更分を送信（未接続なら何もしない）
   }
   var data = load();
 
@@ -3446,6 +3474,322 @@ input:focus { outline: none; border-color: var(--accent); }
     var b = e.target.closest('.edit');
     if (b) openModal(b.dataset.id);
   });
+
+  // ---------- クラウド同期（Supabase）----------
+  // ・正本は常に端末の LocalStorage。クラウドは「共有用の写し」で、未接続・通信エラーでも従来どおり使える
+  // ・支出は1件ずつ（expenses）、カテゴリ・色・店名マスター・予算・基本設定は household テーブルのキーごとに同期
+  // ・変更は save() の後に自動送信、他端末の変更は Realtime で受信（切断時は復帰後に差分を取り込む）
+  var CFG_KEY = 'kakeibo_sync_cfg';
+  var HOUSE_KEYS = ['categories', 'colors', 'settings', 'budgets', 'stores'];
+  var sb = null, sbCfg = null, sbChannel = null, sbReady = false, sbDown = false;
+  var pushed = {};          // 最後にクラウドと一致を確認した内容の署名（'e:<id>' / 'h:<key>'）
+  var flushTimer = null, flushing = false, flushAgain = false, retryTimer = null, reconciling = false, lastRecon = 0, lastErr = '';
+
+  function readCfg() {
+    try {
+      var c = JSON.parse(localStorage.getItem(CFG_KEY));
+      if (c && /^https:\/\/[^\s]+$/.test(c.url || '') && typeof c.key === 'string' && c.key.length > 20) return c;
+    } catch (e) {}
+    return null;
+  }
+  function writeCfg(c) {
+    try { if (c) localStorage.setItem(CFG_KEY, JSON.stringify(c)); else localStorage.removeItem(CFG_KEY); } catch (e) {}
+  }
+  // 「他の端末用リンク」（#sync=...）で開かれたら、その設定を取り込む（ハッシュはサーバーに送信されない）
+  (function cfgFromHash() {
+    var m = /[#&]sync=([^&]+)/.exec(location.hash || '');
+    if (!m) return;
+    try {
+      var o = JSON.parse(atob(decodeURIComponent(m[1])));
+      if (o && /^https:\/\/[^\s]+$/.test(o.u || '') && typeof o.k === 'string' && o.k.length > 20) {
+        var cur = readCfg();
+        if (!cur || cur.url !== o.u || cur.key !== o.k) writeCfg({ url: o.u, key: o.k, done: cur && cur.url === o.u ? !!cur.done : false });
+      }
+    } catch (e) {}
+  })();
+
+  function msgOf(e) {
+    var s = e && (e.message || e.error_description || e.details) ? String(e.message || e.error_description || e.details) : String(e);
+    if ((e && e.code === 'PGRST205') || /schema cache|does not exist|Could not find the table/i.test(s)) return 'テーブルが見つかりません。SQL（テーブル作成）を実行したか確認してください';
+    if (/Invalid API key|JWT|apikey/i.test(s) || (e && (e.status === 401 || e.status === 403))) return 'キーが正しくないか、権限がありません（anon key と RLS ポリシーを確認）';
+    if (/Failed to fetch|NetworkError|Load failed/i.test(s)) return '通信できません（オフライン、または Project URL の誤り）';
+    return s;
+  }
+  function setSync(state, msg) {
+    var p = $('syncPill');
+    var map = { off: ['☁ この端末のみ', ''], ok: ['☁ 同期済み', 'ok'], busy: ['☁ 同期中…', 'busy'], err: ['☁ 未同期', 'err'] };
+    p.textContent = map[state][0];
+    p.className = 'sync-pill ' + map[state][1];
+    p.title = state === 'err' ? (msg || '') : '';
+    if (state === 'err') lastErr = msg || '';
+    if (state === 'err' && msg && $('overlay5').classList.contains('open')) $('sbMsg').textContent = '⚠ ' + msg;
+  }
+
+  // 並び順に依存しない文字列化（jsonb はキー順が変わるため）
+  function canon(v) {
+    if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+    if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(function (k) { return JSON.stringify(k) + ':' + canon(v[k]); }).join(',') + '}';
+    return JSON.stringify(v === undefined ? null : v);
+  }
+  function toRow(x) {
+    return { id: x.id, date: x.date, amount: x.amount, category: x.category, store: x.store, memo: x.memo, payer: x.who,
+      receipt_image: x.photo || null, created_at: x.createdAt, created_by: x.createdBy, updated_at: x.updatedAt, updated_by: x.updatedBy, history: x.editHistory };
+  }
+  function fromRow(r) {
+    return withMeta({ id: String(r.id), date: r.date, amount: Number(r.amount) || 0, category: r.category, store: r.store, memo: r.memo,
+      who: r.payer === '妻' ? '妻' : '夫', photo: r.receipt_image || null, createdAt: r.created_at || '', createdBy: r.created_by || '',
+      updatedAt: r.updated_at || '', updatedBy: r.updated_by || '', editHistory: Array.isArray(r.history) ? r.history : [] });
+  }
+  function rowSig(r) {   // 写真は長さ＋末尾だけ見る（毎回 Base64 全体を比較しない）
+    return canon([r.id, r.date, Number(r.amount), r.category, r.store, r.memo, r.payer,
+      r.receipt_image ? r.receipt_image.length + ':' + r.receipt_image.slice(-24) : null,
+      r.created_at, r.created_by, r.updated_at, r.updated_by,
+      (r.history || []).map(function (h) { return [h.timestamp, h.updater, h.summary]; })]);
+  }
+  function lightSig(r, hasImg) {   // 写真と履歴の中身を除いた軽い比較用（一覧取得では写真を取らない）
+    return canon([r.date, Number(r.amount), r.category, r.store, r.memo, r.payer, r.created_at || '', r.created_by || '',
+      r.updated_at || '', r.updated_by || '', (r.history || []).length, !!hasImg]);
+  }
+  function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
+  function refreshViews() {
+    hideDayPop();
+    renderAll();
+    if (!$('viewYear').hidden) renderYear();
+    if ($('overlay8').classList.contains('open')) renderSearch();
+    if ($('overlay3').classList.contains('open')) renderModalCats();
+  }
+
+  // ----- 送信（端末 → クラウド）-----
+  function scheduleFlush() {
+    if (!sb || !sbReady) return;
+    clearTimeout(flushTimer);
+    flushTimer = setTimeout(flush, 600);
+  }
+  function armRetry() {
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(function () { reconcile(); }, 30000);   // 通信エラー後は30秒ごとに再試行
+  }
+  async function flush() {
+    if (!sb || !sbReady) return;
+    if (flushing) { flushAgain = true; return; }
+    var ex = [], hs = [];
+    data.expenses.forEach(function (x) { var r = toRow(x), s = rowSig(r); if (pushed['e:' + x.id] !== s) ex.push({ r: r, s: s }); });
+    HOUSE_KEYS.forEach(function (k) { var s = canon(data[k]); if (pushed['h:' + k] !== s) hs.push({ k: k, s: s }); });
+    if (!ex.length && !hs.length) { if (!reconciling) setSync('ok'); return; }
+    flushing = true;
+    setSync('busy');
+    try {
+      for (var i = 0; i < ex.length; i += 5) {   // 写真つきは重いので少しずつ送る
+        var part = ex.slice(i, i + 5);
+        var res = await sb.from('expenses').upsert(part.map(function (p) { return p.r; }), { onConflict: 'id' });
+        if (res.error) throw res.error;
+        part.forEach(function (p) { pushed['e:' + p.r.id] = p.s; });
+      }
+      if (hs.length) {
+        var now = new Date().toISOString();
+        var res2 = await sb.from('household').upsert(hs.map(function (h) { return { key: h.k, value: data[h.k], updated_at: now }; }), { onConflict: 'key' });
+        if (res2.error) throw res2.error;
+        hs.forEach(function (h) { pushed['h:' + h.k] = h.s; });
+      }
+      sbDown = false;
+      setSync('ok');
+    } catch (e) {
+      setSync('err', msgOf(e));
+      armRetry();
+    }
+    flushing = false;
+    if (flushAgain) { flushAgain = false; scheduleFlush(); }
+  }
+
+  // ----- 受信（クラウド → 端末）-----
+  function adoptRow(row) {
+    var x = fromRow(row), i = -1;
+    data.expenses.forEach(function (e, k) { if (e.id === x.id) i = k; });
+    if (i >= 0) data.expenses[i] = x; else data.expenses.push(x);
+    pushed['e:' + x.id] = rowSig(toRow(x));
+    return x;
+  }
+  function applyHouse(k, v) {
+    if (k === 'categories') {
+      if (!Array.isArray(v) || !v.length) return false;
+      v = v.filter(function (c) { return typeof c === 'string' && c; });
+      if (!v.length) return false;
+    } else if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+    data[k] = v;
+    if (k === 'settings' || k === 'budgets' || k === 'stores') withSettings(data);
+    pushed['h:' + k] = canon(data[k]);
+    return true;
+  }
+  // 初回接続（この端末に既存データがある場合）：消さずに和集合でまとめる
+  function unionHouse(k, remoteVal) {
+    var L = data[k], R = remoteVal;
+    if (k === 'categories' && Array.isArray(R)) {
+      var out = R.slice(); (L || []).forEach(function (c) { if (out.indexOf(c) < 0) out.push(c); }); return out;
+    }
+    if (k === 'colors' || k === 'budgets') return Object.assign({}, L, R);
+    if (k === 'stores' && R && typeof R === 'object') {
+      var o = {}; Object.keys(R).forEach(function (c) { o[c] = (R[c] || []).slice(); });
+      Object.keys(L || {}).forEach(function (c) {
+        if (!o[c]) o[c] = [];
+        (L[c] || []).forEach(function (n) { if (o[c].indexOf(n) < 0) o[c].push(n); });
+      });
+      return o;
+    }
+    return R;   // settings（タイトル・名前）はクラウド優先
+  }
+  async function pull() {
+    var cols = 'id,date,amount,category,store,memo,payer,created_at,created_by,updated_at,updated_by,history,has_image';
+    var r1 = await sb.from('expenses').select(cols);
+    if (r1.error) throw r1.error;
+    var r2 = await sb.from('household').select('key,value');
+    if (r2.error) throw r2.error;
+
+    var firstTime = !sbCfg.done, pristine = data.expenses.length === 0;   // この端末が空なら、クラウドをそのまま採用
+    var need = [], changed = false;
+    (r1.data || []).forEach(function (r) {
+      var x = findExp(r.id);
+      if (!x) { need.push(r.id); return; }
+      var lr = toRow(x);
+      if (lightSig(lr, !!x.photo) === lightSig(r, r.has_image)) { pushed['e:' + x.id] = rowSig(lr); return; }   // 一致
+      if ((x.updatedAt || '') > (r.updated_at || '')) return;   // 端末側が新しい → あとで送信される
+      need.push(r.id);                                          // クラウド側が新しい（または同時刻）→ 取り込む
+    });
+    for (var i = 0; i < need.length; i += 5) {
+      var rr = await sb.from('expenses').select('*').in('id', need.slice(i, i + 5));
+      if (rr.error) throw rr.error;
+      (rr.data || []).forEach(function (row) { adoptRow(row); changed = true; });
+    }
+    var remote = {};
+    (r2.data || []).forEach(function (r) { remote[r.key] = r.value; });
+    HOUSE_KEYS.forEach(function (k) {
+      if (!(k in remote)) return;   // クラウドに未登録 → この端末の内容が送信される
+      var v = (firstTime && !pristine) ? unionHouse(k, remote[k]) : remote[k];
+      var before = canon(data[k]);
+      if (applyHouse(k, v)) {
+        if (canon(data[k]) !== before) changed = true;
+        if (firstTime && !pristine && canon(data[k]) !== canon(remote[k])) delete pushed['h:' + k];   // 和集合でクラウドと差が出た分は送信
+      }
+    });
+    sbCfg.done = true; writeCfg(sbCfg);
+    if (changed) { saveLocal(); refreshViews(); applyNamesIfNeeded(); }
+  }
+  function applyNamesIfNeeded() { applyNames(); }   // 基本設定（名前・タイトル）の変更を画面へ反映
+
+  async function onExpenseEvent(p) {
+    if (p.eventType === 'DELETE') return;   // このアプリに削除機能はない
+    var id = p.new && p.new.id;
+    if (!id) return;
+    var r = await sb.from('expenses').select('*').eq('id', id).maybeSingle();   // 写真つき行は通知に載らないことがあるので取り直す
+    if (r.error || !r.data) return;
+    var x = findExp(id), remoteSig = rowSig(toRow(fromRow(r.data)));
+    if (x) {
+      var ls = rowSig(toRow(x));
+      if (ls === remoteSig) { pushed['e:' + id] = ls; return; }                                  // 自分の送信のエコー
+      if (ls !== pushed['e:' + id] && (x.updatedAt || '') > (r.data.updated_at || '')) return;  // 未送信の新しい変更が端末にある
+    }
+    adoptRow(r.data);
+    saveLocal();
+    refreshViews();
+    toast('☁ 他の端末の更新を反映しました');
+  }
+  function onHouseEvent(p) {
+    if (p.eventType === 'DELETE' || !p.new || HOUSE_KEYS.indexOf(p.new.key) < 0) return;
+    var k = p.new.key;
+    if (canon(p.new.value) === pushed['h:' + k]) return;   // 自分の送信のエコー
+    if (!applyHouse(k, p.new.value)) return;
+    saveLocal();
+    applyNames();   // 名前・カテゴリ・店名・予算の変更を全画面へ
+    refreshViews();
+    toast('☁ 他の端末の設定変更を反映しました');
+  }
+
+  // ----- 接続・再同期 -----
+  function teardown() {
+    clearTimeout(retryTimer); clearTimeout(flushTimer);
+    var old = sb, ch = sbChannel;
+    sb = null; sbChannel = null; sbReady = false; sbDown = false; pushed = {};   // 先に null にして、閉じる通知を無視させる
+    try { if (old && ch) old.removeChannel(ch); } catch (e) {}
+  }
+  function subscribe() {
+    sbChannel = sb.channel('kakeibo-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, function (p) { onExpenseEvent(p).catch(function () {}); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'household' }, function (p) { try { onHouseEvent(p); } catch (e) {} })
+      .subscribe(function (status) {
+        if (!sb) return;
+        if (status === 'SUBSCRIBED') { if (sbDown) { sbDown = false; reconcile(); } }   // 切断から復帰：取りこぼしを取り込む
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') { sbDown = true; setSync('err', 'リアルタイム接続が切れました。復帰すると自動で再接続します'); }
+      });
+  }
+  async function reconcile() {
+    if (!sbCfg) return;
+    if (reconciling) return;
+    reconciling = true; lastRecon = Date.now();
+    try {
+      if (!sb) {
+        if (!window.supabase || !window.supabase.createClient) throw new Error('同期ライブラリを読み込めませんでした（オフライン？）。この端末のデータはそのまま使えます');
+        sb = window.supabase.createClient(sbCfg.url, sbCfg.key, { auth: { persistSession: false, autoRefreshToken: false } });
+        subscribe();
+      }
+      setSync('busy');
+      await pull();
+      sbReady = true;
+      reconciling = false;
+      await flush();   // 完了時は flush 内で「同期済み」、失敗時は「未同期」になる
+    } catch (e) {
+      sbReady = false;
+      setSync('err', msgOf(e));
+      armRetry();
+    }
+    reconciling = false;
+  }
+  async function startSync() {
+    sbCfg = readCfg();
+    if (!sbCfg) { setSync('off'); return; }
+    await reconcile();
+  }
+
+  $('syncPill').addEventListener('click', function () { $('openSettings').click(); });
+  $('openSettings').addEventListener('click', function () {
+    var c = readCfg();
+    $('sbUrl').value = c ? c.url : '';
+    $('sbKey').value = c ? c.key : '';
+    $('sbMsg').textContent = c ? (sb && sbReady ? '✅ 接続中' : (lastErr ? '⚠ ' + lastErr : '')) : '';
+  });
+  $('sbConnect').addEventListener('click', async function () {
+    var u = $('sbUrl').value.trim().replace(/\/+$/, ''), k = $('sbKey').value.trim();
+    if (!/^https:\/\/[^\s\/]+\.[^\s\/]+$/.test(u)) { $('sbMsg').textContent = '⚠ Project URL は https://xxxx.supabase.co の形で入力してください'; return; }
+    if (k.length < 20) { $('sbMsg').textContent = '⚠ anon public key を貼り付けてください'; return; }
+    teardown();
+    var old = readCfg();
+    writeCfg({ url: u, key: k, done: !!(old && old.url === u && old.done) });
+    $('sbMsg').textContent = '接続中…';
+    await startSync();
+    $('sbMsg').textContent = sbReady ? '✅ 接続しました。この端末のデータと同期しました' : '⚠ ' + (lastErr || '接続できませんでした');
+  });
+  $('sbNow').addEventListener('click', async function () {
+    if (!sbCfg) { $('sbMsg').textContent = '⚠ 先に接続してください'; return; }
+    $('sbMsg').textContent = '同期中…';
+    await reconcile();
+    $('sbMsg').textContent = sbReady ? '✅ 同期しました' : '⚠ ' + (lastErr || '同期できませんでした');
+  });
+  $('sbOff').addEventListener('click', function () {
+    teardown(); writeCfg(null); sbCfg = null; lastErr = '';
+    setSync('off');
+    $('sbMsg').textContent = '切断しました。この端末のデータはそのまま残ります（クラウドのデータは消えません）';
+  });
+  $('sbLink').addEventListener('click', function () {
+    var c = readCfg();
+    if (!c) { $('sbMsg').textContent = '⚠ 先に接続してください'; return; }
+    var link = location.href.split('#')[0] + '#sync=' + encodeURIComponent(btoa(JSON.stringify({ u: c.url, k: c.key })));
+    var done = function () { $('sbMsg').textContent = '✅ コピーしました。他の端末でこのリンクを開くと、接続設定が自動で入ります（このリンクは他人に教えないでください）'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done, function () { window.prompt('このリンクをコピーしてください', link); });
+    else window.prompt('このリンクをコピーしてください', link);
+  });
+  window.addEventListener('online', function () { if (sbCfg) reconcile(); });
+  document.addEventListener('visibilitychange', function () {   // iPhone で画面を戻したとき：取りこぼしを取り込む
+    if (document.visibilityState === 'visible' && sbCfg && Date.now() - lastRecon > 5000) reconcile();
+  });
+  if (document.readyState === 'complete') startSync(); else window.addEventListener('load', startSync);
 })();
 </script>
 </body>
