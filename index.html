@@ -92,6 +92,7 @@ button { font-family: inherit; cursor: pointer; }
 .badge.a { background: var(--a); } .badge.b { background: var(--b); }
 .item .main { flex: 1; min-width: 0; }
 .item .cat { font-weight: 600; font-size: 14px; }
+.memo-link { color: var(--accent-dark); text-decoration: underline; word-break: break-all; }
 .item .memo { font-size: 12px; color: var(--sub); overflow-wrap: anywhere; }
 .item .yen { font-weight: 700; font-size: 15px; white-space: nowrap; }
 .edit { flex: none; width: 40px; height: 40px; border: none; background: transparent; color: var(--sub); font-size: 18px; border-radius: 10px; }
@@ -612,7 +613,7 @@ input:focus { outline: none; border-color: var(--accent); }
     </div>
     <div class="field">
       <label for="memo">メモ（任意）</label>
-      <input type="text" id="memo" maxlength="100" autocomplete="off">
+      <input type="text" id="memo" maxlength="300" autocomplete="off">
     </div>
     <div class="field">
       <label>レシート写真（任意）</label>
@@ -1011,6 +1012,23 @@ input:focus { outline: none; border-color: var(--accent); }
     if (text != null) e.textContent = text;
     return e;
   }
+  // 文中の http(s):// のURLをクリックで開けるリンクにして parent に追加する（innerHTML は使わない）
+  function addLinked(parent, text) {
+    var re = /https?:\/\/[^\s<>"'）)」』】、。]+/g, last = 0, m;
+    text = String(text || '');
+    while ((m = re.exec(text))) {
+      if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
+      var a = document.createElement('a');
+      a.href = m[0]; a.textContent = m[0]; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.className = 'memo-link';
+      a.addEventListener('click', function (ev) { ev.stopPropagation(); });   // 行の編集などを開かない
+      parent.appendChild(a);
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+    return parent;
+  }
+  function memoEl(text) { return addLinked(el('div', 'memo'), text); }
   function whoCls(w) { return w === '妻' ? 'b' : 'a'; }
   // 表示名（内部の識別子は '夫' / '妻' のまま。画面表示だけ置き換える）
   function nm(w) { return w === '妻' ? data.settings.m2 : data.settings.m1; }
@@ -1172,7 +1190,7 @@ input:focus { outline: none; border-color: var(--accent); }
       catEl.appendChild(document.createTextNode(x.category));
       var sb0 = storeBadge(x); if (sb0) catEl.appendChild(sb0);
       main.appendChild(catEl);
-      if (x.memo) main.appendChild(el('div', 'memo', x.memo));
+      if (x.memo) main.appendChild(memoEl(x.memo));
       main.appendChild(updRow(x));
       var rb = rcptBadge(x); if (rb) main.appendChild(rb);
       row.appendChild(main);
@@ -1859,7 +1877,7 @@ input:focus { outline: none; border-color: var(--accent); }
       cat.style.background = colorOf(x.category);
       mid.appendChild(cat);
       var sb1 = storeBadge(x); if (sb1) mid.appendChild(sb1);
-      if (x.memo) mid.appendChild(el('div', 'memo', x.memo));
+      if (x.memo) mid.appendChild(memoEl(x.memo));
       mid.appendChild(updRow(x));
       var rb = rcptBadge(x); if (rb) mid.appendChild(rb);
       row.appendChild(mid);
@@ -1937,7 +1955,7 @@ input:focus { outline: none; border-color: var(--accent); }
         mid.appendChild(cb);
       }
       var sb2 = storeBadge(x); if (sb2) mid.appendChild(sb2);
-      if (x.memo) mid.appendChild(el('div', 'memo', x.memo));
+      if (x.memo) mid.appendChild(memoEl(x.memo));
       mid.appendChild(updRow(x));
       var rb = rcptBadge(x); if (rb) mid.appendChild(rb);
       row.appendChild(mid);
@@ -2132,7 +2150,7 @@ input:focus { outline: none; border-color: var(--accent); }
       if (h.updater) when.appendChild(el('span', 'badge ' + whoCls(h.updater), nm(h.updater)));
       main.appendChild(when);
       var ul = document.createElement('ul');
-      String(h.summary || '内容の記録なし').split(' / ').forEach(function (t) { ul.appendChild(el('li', '', t.replace('→', ' → '))); });
+      String(h.summary || '内容の記録なし').split(' / ').forEach(function (t) { ul.appendChild(addLinked(el('li'), t.replace('→', ' → '))); });
       main.appendChild(ul);
       row.appendChild(main);
       box.appendChild(row);
@@ -2977,7 +2995,7 @@ input:focus { outline: none; border-color: var(--accent); }
         c.appendChild(dot); c.appendChild(document.createTextNode(x.category));
         var sb3 = storeBadge(x); if (sb3) c.appendChild(sb3);
         m.appendChild(c);
-        if (x.memo) m.appendChild(el('div', 'memo', x.memo));
+        if (x.memo) m.appendChild(memoEl(x.memo));
         r.appendChild(m);
         r.appendChild(el('span', 'py', yen(x.amount)));
         dayPop.appendChild(r);
@@ -3093,9 +3111,14 @@ input:focus { outline: none; border-color: var(--accent); }
       if (ex.category !== form.category) ch.push('カテゴリ ' + ex.category + '→' + form.category);
       if (ex.amount !== Number(raw)) ch.push('金額 ' + yen(ex.amount) + '→' + yen(Number(raw)));
       if ((ex.store || '') !== store) ch.push('店名 ' + (ex.store || 'なし') + '→' + (store || 'なし'));
-      if (ex.memo !== memo) {   // 変更前→変更後を残す（長いメモは先頭だけ）
-        var cut = function (s) { s = s || 'なし'; return s.length > 16 ? s.slice(0, 16) + '…' : s; };
-        ch.push('メモ ' + cut(ex.memo) + '→' + cut(memo));
+      if (ex.memo !== memo) {   // 変更前→変更後を、書いた人の名前つきで残す（入力欄の上限300文字まで全文）
+        // 旧メモを書いた人＝最後にメモを変更した人。メモの変更履歴がなければ登録者
+        var oldAuthor = ex.createdBy;
+        ex.editHistory.forEach(function (h) {
+          if (String(h.summary || '').split(' / ').some(function (t) { return t.indexOf('メモ ') === 0; })) oldAuthor = h.updater;
+        });
+        var who = function (s, w) { return s ? '（' + nm(w) + '）' + s : 'なし'; };
+        ch.push('メモ ' + who(ex.memo, oldAuthor) + '→' + who(memo, op));
       }
       // 写真は「開いた時点から変えたか」で判定（バックグラウンドで data URL → Storage パスに置き換わっても変更扱いにしない）
       var photoChanged = (formPhoto || null) !== (formPhotoBase || null);
@@ -3448,7 +3471,7 @@ input:focus { outline: none; border-color: var(--accent); }
       cb.style.marginLeft = '6px';
       mid.appendChild(cb);
       var sb4 = storeBadge(x); if (sb4) mid.appendChild(sb4);
-      if (x.memo) mid.appendChild(el('div', 'memo', x.memo));
+      if (x.memo) mid.appendChild(memoEl(x.memo));
       mid.appendChild(updRow(x));
       var rb = rcptBadge(x); if (rb) mid.appendChild(rb);
       row.appendChild(mid);
