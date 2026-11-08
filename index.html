@@ -247,7 +247,7 @@ button.chip { border: none; font-family: inherit; cursor: pointer; transition: t
 #dateIn { flex: 1; min-width: 0; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font-size: 16px; font-family: inherit; background: #fff; color: var(--text); }
 #dateIn:focus { outline: none; border-color: var(--accent); }
 #datePick { height: 40px; width: 46px; padding: 0; font-size: 18px; }
-.date-picker-hidden { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.date-picker-hidden { position: absolute; right: 0; top: 0; width: 46px; height: 40px; opacity: 0; pointer-events: none; border: 0; padding: 0; }   /* 📅 ボタンの真上に重ね、ピッカーがボタン付近に開くようにする */
 .ocr-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #eef6ff; color: #2f62c4; font-size: 12.5px; font-weight: 600; }
 .ocr-status[hidden] { display: none; }
 .ocr-status.ok { background: #e7f7f2; color: #0f7a5e; }
@@ -262,8 +262,8 @@ button.chip { border: none; font-family: inherit; cursor: pointer; transition: t
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; max-width: calc(100vw - 32px); background: rgba(30,40,38,.94); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .2s; text-align: center; }
 .toast.show { opacity: 1; }
 .store-row { display: flex; gap: 6px; align-items: center; }
-.store-row select { flex: 1; min-width: 0; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font-size: 16px; font-family: inherit; background: #fff; color: var(--text); }
-.store-row select:focus { outline: none; border-color: var(--accent); }
+.store-row select, .store-row input { flex: 1; min-width: 0; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font-size: 16px; font-family: inherit; background: #fff; color: var(--text); }
+.store-row select:focus, .store-row input:focus { outline: none; border-color: var(--accent); }
 .store-row .ghost.sm { height: 40px; white-space: nowrap; }
 .store-suggest { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; padding: 6px 10px; border-radius: 10px; background: #fff7d6; border: 1.5px solid #f2c94c; color: #7a5a00; font-size: 12.5px; font-weight: 600; }
 .store-suggest[hidden] { display: none; }
@@ -411,6 +411,14 @@ button.chip.editable:hover, button.chip.editable:focus { transform: scale(1.08);
 
 /* カテゴリ設定 */
 .card h3.sec { margin: 0 0 10px; font-size: 15px; }
+.cat-order { margin: 4px 0 10px; }
+.cat-order summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent-dark); padding: 6px 0; }
+.co-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.co-row .co-name { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.co-row .catdot { flex: none; }
+.co-row button { flex: none; width: 44px; height: 36px; border: 1.5px solid var(--line); background: #fff; color: var(--accent-dark); border-radius: 10px; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.co-row button:disabled { opacity: .35; cursor: default; }
+.co-row .co-del { color: var(--danger); font-size: 15px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .chip { background: var(--accent-soft); color: var(--accent-dark); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
 .add-row { display: flex; gap: 8px; }
@@ -532,7 +540,12 @@ input:focus { outline: none; border-color: var(--accent); }
   <section class="card">
     <h3 class="sec">カテゴリ設定</h3>
     <div class="chips" id="chips"></div>
-    <div class="note">バッジをクリックすると、名前と色を編集できます</div>
+    <div class="note">バッジをクリックすると、名前と色を編集できます（PC ではドラッグで並び替えもできます）</div>
+    <details class="cat-order">
+      <summary>↕ 並び順を変更（↑ ↓ ボタン）</summary>
+      <p class="note" style="margin:6px 0">ここでの順番が、支出入力画面のカテゴリボタンの並びにそのまま反映されます。よく使うカテゴリを上に並べてください。</p>
+      <div id="catOrderList"></div>
+    </details>
     <div class="add-row">
       <input type="text" id="newCat" placeholder="新しいカテゴリを追加（例：趣味）" maxlength="20" autocomplete="off">
       <button class="primary" type="button" id="addCat" style="flex:none">追加</button>
@@ -583,7 +596,7 @@ input:focus { outline: none; border-color: var(--accent); }
       <div class="date-row">
         <input type="text" id="dateIn" inputmode="text" placeholder="YYYY-MM-DD（例: 2026-10-15）" maxlength="12" autocomplete="off">
         <button type="button" class="ghost sm" id="datePick" aria-label="カレンダーから選ぶ">📅</button>
-        <input type="date" id="datePicker" class="date-picker-hidden" tabindex="-1" aria-hidden="true">
+        <input type="date" id="datePicker" class="date-picker-hidden" tabindex="-1" aria-hidden="true" min="2026-01-01">
       </div>
     </div>
     <div class="field">
@@ -607,7 +620,7 @@ input:focus { outline: none; border-color: var(--accent); }
     <div class="field">
       <label for="storeSel">店名（購入したお店）</label>
       <div class="store-row">
-        <select id="storeSel"></select>
+        <input type="text" id="storeSel" list="storeDl" maxlength="30" placeholder="店名を選択、または直接入力" autocomplete="off"><datalist id="storeDl"></datalist>
         <button type="button" class="ghost sm" id="storeMgr">⚙️ 店名管理</button>
       </div>
       <div class="store-suggest" id="storeSuggest" hidden>
@@ -869,6 +882,7 @@ input:focus { outline: none; border-color: var(--accent); }
   'use strict';
   var KEY = 'kakeibo_v1';
   var DEFAULT_CATS = ['食費', '外食費', '日用品', '交通費', '固定費', 'その他'];
+  var ADD_CATS = { '旅行・遊興費': '#ec4899', 'こた関連': '#14b8a6', 'こた積立': '#84cc16' };   // 後から追加した標準カテゴリ（既存データには1回だけ補う）
 
   // ---------- データ ----------
   function load() {
@@ -1003,6 +1017,29 @@ input:focus { outline: none; border-color: var(--accent); }
     data.infraSeeded = true;
     save();
   }
+  // カテゴリの一度きりの整備（変更したら true）。
+  //  ・追加カテゴリの補充：すでにある名前は触らない。「その他」はそのまま。以後に削除・改名しても再追加しない
+  //  ・「旅行」の整理：「旅行・遊興費」があるときだけ「旅行」をカテゴリ一覧から外す（過去の支出の「旅行」はそのまま残る）
+  // クラウド接続中は、クラウドの内容を取り込んだ後に実行する（先に実行すると、取り込みで上書きされて消えるため）
+  function seedCategories() {
+    var ch = false;
+    if (!data.catSeed2) {
+      Object.keys(ADD_CATS).forEach(function (c) {
+        if (data.categories.indexOf(c) < 0) data.categories.push(c);
+        if (!data.colors[c]) data.colors[c] = ADD_CATS[c];
+      });
+      data.catSeed2 = true; ch = true;
+    }
+    if (!data.travelRemoved) {
+      var ti = data.categories.indexOf('旅行');
+      if (ti >= 0 && data.categories.indexOf('旅行・遊興費') >= 0 && data.categories.length > 1) data.categories.splice(ti, 1);   // 色・店名リスト・支出は消さない
+      data.travelRemoved = true; ch = true;
+    }
+    return ch;
+  }
+  var hasSyncCfg = false;
+  try { hasSyncCfg = !!localStorage.getItem('kakeibo_sync_cfg'); } catch (e) {}
+  if (!hasSyncCfg && seedCategories()) save();
 
   // ---------- 状態 ----------
   var today = new Date();
@@ -2008,13 +2045,54 @@ input:focus { outline: none; border-color: var(--accent); }
       chip.appendChild(document.createTextNode(c));
       chips.appendChild(chip);
     });
+    renderCatOrder();
+  }
+  // 並び順の変更リスト（↑ ↓ ボタン。スマホでも確実に入れ替えられる）。順番は data.categories そのもの＝入力画面・クラウド同期にも反映される
+  function renderCatOrder() {
+    var box = $('catOrderList');
+    box.innerHTML = '';
+    data.categories.forEach(function (c, i) {
+      var row = el('div', 'co-row');
+      var dot = el('i', 'catdot'); dot.style.background = colorOf(c);
+      row.appendChild(dot);
+      row.appendChild(el('span', 'co-name', c));
+      [['↑', -1, '前へ'], ['↓', 1, '次へ']].forEach(function (d) {
+        var b = el('button', '', d[0]);
+        b.type = 'button'; b.dataset.i = i; b.dataset.dir = d[1];
+        b.setAttribute('aria-label', c + 'を' + d[2] + '移動');
+        b.disabled = (d[1] < 0 && i === 0) || (d[1] > 0 && i === data.categories.length - 1);
+        row.appendChild(b);
+      });
+      var del = el('button', 'co-del', '🗑️');
+      del.type = 'button'; del.dataset.i = i; del.dataset.del = '1';
+      del.setAttribute('aria-label', c + 'を削除');
+      del.disabled = data.categories.length <= 1;   // 最後の1つは残す
+      row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+  // カテゴリの削除：一覧（マスター）から外すだけ。過去の支出・色・店名リストは触らない（集計には今までどおり合算される）
+  function deleteCategory(i) {
+    var name = data.categories[i];
+    if (name === undefined || data.categories.length <= 1) return;
+    if (!window.confirm('カテゴリ『' + name + '』を削除しますか？（過去の登録データは消えずに残ります）')) return;
+    data.categories.splice(i, 1);
+    if (form.category === name) form.category = data.categories[0];
+    save();
+    renderAll();
+    renderModalCats();
+    if (!$('viewYear').hidden) renderYear();
+    toast('カテゴリ『' + name + '』を削除しました（過去の登録データは残っています）');
   }
 
   function renderModalCats() {
     var box = $('catBtns');
     box.innerHTML = '';
-    if (data.categories.indexOf(form.category) < 0) form.category = data.categories[0];
-    data.categories.forEach(function (c) {
+    // 編集中の支出が、削除済みカテゴリのものなら、その編集画面でだけ選択肢に出す（カテゴリ一覧には戻さない）
+    var exEdit = editingId ? findExp(editingId) : null;
+    var extra = exEdit && data.categories.indexOf(exEdit.category) < 0 ? exEdit.category : null;
+    if (data.categories.indexOf(form.category) < 0 && form.category !== extra) form.category = data.categories[0];
+    data.categories.concat(extra ? [extra] : []).forEach(function (c) {
       var b = el('button', c === form.category ? 'on' : '', c);
       b.type = 'button';
       b.dataset.cat = c;
@@ -2232,18 +2310,22 @@ input:focus { outline: none; border-color: var(--accent); }
   }
   // 店名プルダウン：現在選択中のカテゴリの店名だけを表示する（先頭は「店名を選択」）
   function renderStoreSel(selectedName) {
-    var sel = $('storeSel');
-    sel.innerHTML = '';
-    var names = storesOf(form.category).slice();
-    if (selectedName && names.indexOf(selectedName) < 0) names.push(selectedName);   // 登録済み支出の店名がリストにない（削除済み・他カテゴリ）場合も、編集中は値を保持する
-    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = names.length ? '店名を選択' : '店名を選択（このカテゴリは未登録）'; sel.appendChild(o0);
-    names.forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
-    sel.value = selectedName && names.indexOf(selectedName) >= 0 ? selectedName : '';
+    // 店名欄は「候補（datalist）から選ぶ」＋「自由に直接入力」の両対応。候補は選択中カテゴリの店名リスト
+    var sel = $('storeSel'), dl = $('storeDl');
+    dl.innerHTML = '';
+    storesOf(form.category).forEach(function (n) { var o = document.createElement('option'); o.value = n; dl.appendChild(o); });
+    sel.value = selectedName || '';   // 登録済み支出の店名がリストにない場合も、そのまま表示して値を保持する
+    sel.placeholder = storesOf(form.category).length ? '店名を選択、または直接入力' : '店名を直接入力（このカテゴリは未登録）';
+  }
+  function isMasterStore(name) {
+    var k = normStore(name);
+    return data.categories.some(function (c) { return storesOf(c).some(function (n) { return normStore(n) === k; }); });
   }
   // カテゴリを切り替えたとき：新しいカテゴリのリストに無い店名は選択を外す
   function syncStoreSel() {
-    var cur = $('storeSel').value;
-    renderStoreSel(storesOf(form.category).indexOf(cur) >= 0 ? cur : '');
+    var cur = $('storeSel').value.trim();
+    // 新カテゴリのリストにある店名は残す。他カテゴリの登録店名は外す。手入力の店名（どこにも未登録）は残す
+    renderStoreSel(cur && (storesOf(form.category).indexOf(cur) >= 0 || !isMasterStore(cur)) ? cur : '');
     $('storeSel').classList.remove('ocr-filled');
     hideStoreSuggest();
   }
@@ -2423,7 +2505,12 @@ input:focus { outline: none; border-color: var(--accent); }
     renderStoreList();
     if (mgrCat === form.category) renderStoreSel(cur === name ? '' : cur);
   });
-  $('storeSel').addEventListener('change', function () { this.classList.remove('ocr-filled'); hideStoreSuggest(); });
+  $('storeSel').addEventListener('input', function () { this.classList.remove('ocr-filled'); hideStoreSuggest(); });
+  $('storeSel').addEventListener('change', function () {   // 入力確定時：このカテゴリの店名リストにない店名なら、ワンタップ追加を案内
+    this.classList.remove('ocr-filled');
+    var v = this.value.trim();
+    if (v && !storesOf(form.category).some(function (n) { return normStore(n) === normStore(v); })) showStoreSuggest(v); else hideStoreSuggest();
+  });
   $('storeSuggestAdd').addEventListener('click', function () {   // ワンタップで店名マスターに追加して選択
     var name = $('storeSuggest').dataset.name || '';
     var added = addStoreName(name, null, form.category);
@@ -2446,6 +2533,11 @@ input:focus { outline: none; border-color: var(--accent); }
     if (y < 2000 || y > 2100 || dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
     return y + '-' + pad(mo) + '-' + pad(d);
   }
+  // 日付の下限：今年の1月1日（1月中だけは、年末のレシート用に前年12月1日から）。OCRの自動設定と日付ピッカーに使う
+  function minDateStr() {
+    var t = new Date(), y = t.getFullYear();
+    return t.getMonth() === 0 ? (y - 1) + '-12-01' : y + '-01-01';
+  }
   function updateModalTitle() {
     var p = (normDate($('dateIn').value) || selected).split('-');
     $('modalTitle').textContent = p[0] + '年' + Number(p[1]) + '月' + Number(p[2]) + '日の支出を' + (editingId ? '編集' : '入力');
@@ -2459,10 +2551,13 @@ input:focus { outline: none; border-color: var(--accent); }
   $('dateIn').addEventListener('input', updateModalTitle);
   $('datePick').addEventListener('click', function () {
     var p = $('datePicker');
-    p.value = normDate($('dateIn').value) || selected;
+    p.min = minDateStr();
+    p.value = normDate($('dateIn').value) || selected;   // 下限より前でも、いま入っている日付はそのまま表示する
     if (p.showPicker) { try { p.showPicker(); return; } catch (e) {} }
-    p.focus(); p.click();
+    p.style.pointerEvents = 'auto'; p.focus(); p.click();   // showPicker が使えない環境の代替
+    setTimeout(function () { p.style.pointerEvents = ''; }, 500);
   });
+  $('datePicker').min = minDateStr();
   $('datePicker').addEventListener('change', function () {
     if (this.value) { $('dateIn').value = this.value; updateModalTitle(); }
   });
@@ -2605,10 +2700,12 @@ input:focus { outline: none; border-color: var(--accent); }
 
     // ---- 日付：数字（年・月・日）だけを取り出して YYYY-MM-DD を組み立てる ----
     function validDate(y, m, d) {
-      if (!(y >= 2000 && y <= nowY + 1) || !(m >= 1 && m <= 12) || !(d >= 1 && d <= 31)) return null;
+      if (!(y <= nowY + 1) || !(m >= 1 && m <= 12) || !(d >= 1 && d <= 31)) return null;
       var dt = new Date(y, m - 1, d);
       if (dt.getMonth() !== m - 1) return null;
-      return y + '-' + pad(m) + '-' + pad(d);
+      var res = y + '-' + pad(m) + '-' + pad(d);
+      if (res < minDateStr()) return null;   // 誤認識（例：2001年）を防ぐ。今年より前の日付は自動設定しない
+      return res;
     }
     var spaced = rawLines.map(function (l) { return l.replace(/[\s　]+/g, ' '); }).join('\n');
     var date = null, m, srcs = [spaced, joined];   // 空白あり（時刻の連結を防ぐ）→ 空白なし（文字間に空白が入るOCR）の順
@@ -2866,14 +2963,13 @@ input:focus { outline: none; border-color: var(--accent); }
       }
       if (hit) {
         renderStoreSel(hit.name); $('storeSel').classList.add('ocr-filled'); done.push('店名(' + hit.name + ')');
-        var rest = r.store.replace(new RegExp(hit.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '').replace(/^[\s\-ー・]+|[\s]+$/g, '').trim();
-        if (rest && !$('memo').value.trim()) { $('memo').value = rest; $('memo').classList.add('ocr-filled'); done.push('メモ(' + rest + ')'); }
       } else {
         renderStoreSel('');
         if (r.store) {
-          // マスターにない店名：プルダウンは未選択のまま、メモに入れ、ワンタップで現在のカテゴリの店名リストへ追加できるようにする
-          if (!$('memo').value.trim()) { $('memo').value = r.store; $('memo').classList.add('ocr-filled'); done.push('店名(メモ)'); }
-          showStoreSuggest(r.chain || r.store);
+          // マスターにない店名：店名欄に入れ（メモ欄には書き込まない）、ワンタップで現在のカテゴリの店名リストへ追加できるようにする
+          var nm0 = String(r.chain || r.store).trim().slice(0, 30);
+          $('storeSel').value = nm0; $('storeSel').classList.add('ocr-filled'); done.push('店名(' + nm0 + ')');
+          showStoreSuggest(nm0);
         }
       }
       if (done.length) $('ocrReview').hidden = false;   // 「読み取り結果を確認してください」バー
@@ -2936,8 +3032,7 @@ input:focus { outline: none; border-color: var(--accent); }
         hl.appendChild(el('li', '', (h.timestamp || '') + (h.updater ? '（' + nm(h.updater) + '）' : '') + ' ' + (h.summary || '')));
       });
       if (!ex.editHistory.length) hl.appendChild(el('li', '', 'まだ修正はありません'));
-      form.category = ex.category;
-      if (data.categories.indexOf(ex.category) < 0) data.categories.push(ex.category);
+      form.category = ex.category;   // 削除済みカテゴリでも、カテゴリ一覧には戻さない（renderModalCats がこの編集画面でだけ表示する）
     }
     setWho(ex ? ex.who : form.who);
     renderModalCats();
@@ -3112,7 +3207,7 @@ input:focus { outline: none; border-color: var(--accent); }
     var op = form.op === '妻' ? '妻' : '夫';
     data.operator = op;  // 次回の初期値として記憶
     var memo = $('memo').value.trim();
-    var store = $('storeSel').value || '';
+    var store = $('storeSel').value.trim();
     if (ex) {
       var ch = [];
       if (ex.date !== dateVal) ch.push('日付 ' + ex.date.replace(/-/g, '/') + '→' + dateVal.replace(/-/g, '/'));
@@ -3162,6 +3257,9 @@ input:focus { outline: none; border-color: var(--accent); }
     save();
     closeModal();
     renderAll();
+    var dp2 = dateVal.split('-');
+    if (!ex) toast('登録が完了しました 👍（' + dp2[0] + '/' + dp2[1] + '/' + dp2[2] + '）');
+    else if (ch.length) toast('更新が完了しました 👍（' + dp2[0] + '/' + dp2[1] + '/' + dp2[2] + '）');
     if ($('overlay8').classList.contains('open')) renderSearch();  // 検索一覧の内容も更新
   });
   $('cancel').addEventListener('click', closeModal);
@@ -3344,6 +3442,15 @@ input:focus { outline: none; border-color: var(--accent); }
     setTimeout(function () { justDragged = false; }, 100);  // ドラッグ直後のクリックでモーダルを開かない
   }
   $('chips').addEventListener('dragend', endDrag);
+  $('catOrderList').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-i]');
+    if (!b || b.disabled) return;
+    if (b.dataset.del) { deleteCategory(Number(b.dataset.i)); return; }
+    var i = Number(b.dataset.i), dir = Number(b.dataset.dir);
+    moveCat(i, i + dir);
+    var nb = $('catOrderList').querySelector('button[data-i="' + (i + dir) + '"][data-dir="' + dir + '"]');   // 続けて押せるよう、動いた先の同じボタンにフォーカスを戻す
+    if (nb && !nb.disabled) nb.focus();
+  });
   $('chips').addEventListener('click', function (e) {
     if (justDragged) return;
     var c = e.target.closest('.chip[data-cat]');
@@ -3810,6 +3917,7 @@ input:focus { outline: none; border-color: var(--accent); }
         if (firstTime && !pristine && canon(data[k]) !== canon(remote[k])) delete pushed['h:' + k];   // 和集合でクラウドと差が出た分は送信
       }
     });
+    if (seedCategories()) changed = true;   // クラウドの内容を取り込んだ後にカテゴリ整備（このあと flush で送信される）
     sbCfg.done = true; writeCfg(sbCfg);
     if (changed) { saveLocal(); refreshViews(); applyNamesIfNeeded(); }
   }
