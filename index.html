@@ -439,6 +439,10 @@ input:focus { outline: none; border-color: var(--accent); }
 .sync-box input { width: 100%; font-size: 13px; }
 .sync-box .srow { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .sync-box .srow button { flex: 1 1 auto; }
+.reset-box { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.reset-box .hint { font-size: 11px; color: var(--sub); margin: 0 0 8px; line-height: 1.5; }
+.btn-reset { width: 100%; border: none; background: var(--danger); color: #fff; border-radius: 10px; height: 42px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.btn-reset:disabled { opacity: .6; cursor: default; }
 .sync-msg { font-size: 12px; margin-top: 6px; min-height: 16px; color: var(--sub); overflow-wrap: anywhere; }
 .field label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 4px; font-weight: 600; }
 .seg { display: flex; gap: 8px; }
@@ -803,6 +807,11 @@ input:focus { outline: none; border-color: var(--accent); }
         <button type="button" class="ghost" id="sbOff">切断</button>
       </div>
       <div class="sync-msg" id="sbMsg"></div>
+    </div>
+    <div class="reset-box">
+      <p class="hint">運用開始前のテストデータなどを消すときに使います。登録した支出だけが全て消え、カテゴリ・名前・予算・店名リストは残ります。クラウド接続中は、クラウド側の支出も消します（事前に Supabase で一時的な削除権限の付与が必要です）。</p>
+      <button type="button" class="btn-reset" id="resetAll">⚠️ 登録データを全初期化（リセット）</button>
+      <div class="sync-msg" id="resetMsg"></div>
     </div>
   </form>
 </div>
@@ -3770,8 +3779,11 @@ input:focus { outline: none; border-color: var(--accent); }
     var r2 = await sb.from('household').select('key,value');
     if (r2.error) throw r2.error;
 
+    var rmap = {};
+    (r2.data || []).forEach(function (r) { rmap[r.key] = r.value; });
+    var wiped = applyRemoteReset(rmap.resetAt);   // 他の端末で全初期化されていたら、この端末の支出も空にする（古いデータの再送信を防ぐ）
     var firstTime = !sbCfg.done, pristine = data.expenses.length === 0;   // この端末が空なら、クラウドをそのまま採用
-    var need = [], changed = false;
+    var need = [], changed = wiped;
     (r1.data || []).forEach(function (r) {
       var x = findExp(r.id);
       if (!x) { need.push(r.id); return; }
@@ -3803,6 +3815,56 @@ input:focus { outline: none; border-color: var(--accent); }
   }
   function applyNamesIfNeeded() { applyNames(); }   // 基本設定（名前・タイトル）の変更を画面へ反映
 
+  // ----- 全データの初期化（リセット）-----
+  // 他の端末への伝達：household テーブルの 'resetAt'（初期化した時刻）を目印にする。
+  // 自分より新しい resetAt を見つけた端末は、支出を空にして時刻を取り込む（空にした後の入力は残る）
+  function applyRemoteReset(v) {
+    if (typeof v !== 'string' || !v) return false;
+    if (v <= (data.resetAt || '')) return false;
+    data.resetAt = v;
+    data.expenses = [];
+    Object.keys(pushed).forEach(function (k) { if (k.indexOf('e:') === 0) delete pushed[k]; });
+    return true;
+  }
+  async function resetAllData() {
+    var msg = $('resetMsg'), btn = $('resetAll');
+    msg.textContent = '';
+    if (!window.confirm('これまでに登録された全ての支出データを削除します。よろしいですか？')) return;
+    if (!window.confirm('【最終確認】この操作は取り消せません。本当にすべての支出データを初期化して0円に戻しますか？')) return;
+    btn.disabled = true;
+    var ts = new Date().toISOString();
+    try {
+      if (sbCfg) {   // クラウド接続中：先にクラウドを空にする（失敗したら端末のデータは触らない）
+        if (!sb) throw new Error('クラウドに接続できていません。接続してからやり直してください');
+        clearTimeout(flushTimer);
+        for (var w = 0; w < 50 && flushing; w++) await new Promise(function (r) { setTimeout(r, 100); });   // 送信中の処理が終わるのを待つ
+        msg.textContent = 'クラウドのデータを削除中…';
+        var d = await sb.from('expenses').delete().neq('id', '');
+        if (d.error) throw d.error;
+        var left = await sb.from('expenses').select('id', { count: 'exact', head: true });
+        if (left.error) throw left.error;
+        if (left.count > 0) throw new Error('クラウドの支出を削除できませんでした。Supabase で削除権限を付与したか確認してください');
+        var m = await sb.from('household').upsert([{ key: 'resetAt', value: ts, updated_at: ts }], { onConflict: 'key' });   // 他の端末への目印
+        if (m.error) throw m.error;
+      }
+    } catch (e) {
+      msg.textContent = '⚠ リセットできませんでした（この端末のデータはそのままです）：' + msgOf(e);
+      btn.disabled = false;
+      return;
+    }
+    data.expenses = [];
+    data.resetAt = ts;
+    Object.keys(pushed).forEach(function (k) { if (k.indexOf('e:') === 0) delete pushed[k]; });
+    editingId = null;
+    save();
+    btn.disabled = false;
+    closeSettings();
+    refreshViews();
+    if (!$('viewYear').hidden) renderYear();
+    toast('全ての支出データをリセットしました');
+  }
+  $('resetAll').addEventListener('click', resetAllData);
+
   async function onExpenseEvent(p) {
     if (p.eventType === 'DELETE') return;   // このアプリに削除機能はない
     var id = p.new && p.new.id;
@@ -3821,7 +3883,12 @@ input:focus { outline: none; border-color: var(--accent); }
     toast('☁ 他の端末の更新を反映しました');
   }
   function onHouseEvent(p) {
-    if (p.eventType === 'DELETE' || !p.new || HOUSE_KEYS.indexOf(p.new.key) < 0) return;
+    if (p.eventType === 'DELETE' || !p.new) return;
+    if (p.new.key === 'resetAt') {   // 他の端末が全初期化した
+      if (applyRemoteReset(p.new.value)) { saveLocal(); refreshViews(); toast('☁ 他の端末で支出データが初期化されました'); }
+      return;
+    }
+    if (HOUSE_KEYS.indexOf(p.new.key) < 0) return;
     var k = p.new.key;
     if (canon(p.new.value) === pushed['h:' + k]) return;   // 自分の送信のエコー
     if (!applyHouse(k, p.new.value)) return;
