@@ -2004,6 +2004,11 @@ input:focus { outline: none; border-color: var(--accent); }
       b.classList.toggle('on', b.dataset.who === w);
     });
   }
+  // 新規入力では「使った人」に合わせて「記録する人」も同じ人にする（あとから手動で変更も可能）
+  function setWhoSync(w) {
+    setWho(w);
+    if (!editingId) setOp(w);
+  }
   // ---------- レシート写真 ----------
   var formPhoto = null;   // 入力モーダルで保持中の写真（data URL）または null
   var formPhotoBase = null, photoReq = 0;   // formPhotoBase＝編集を開いた時点の写真（変更の有無の判定用）
@@ -2911,6 +2916,7 @@ input:focus { outline: none; border-color: var(--accent); }
     renderModalCats();
     renderStoreSel(ex ? ex.store : '');   // 店名プルダウン＝選択中カテゴリの店名（新規は未選択）。カテゴリ確定後に描画する
     if (!ex && INFRA_CATS.indexOf(form.category) >= 0) setWho('夫');
+    if (!ex) setOp(form.who);   // 新規は「記録する人」の初期値を「使った人」に合わせる
     $('overlay').classList.add('open');
     setTimeout(function () { $('amount').focus(); }, 50);
   }
@@ -3052,14 +3058,14 @@ input:focus { outline: none; border-color: var(--accent); }
 
   $('whoSeg').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-who]');
-    if (b) setWho(b.dataset.who);
+    if (b) setWhoSync(b.dataset.who);
   });
   $('catBtns').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-cat]');
     if (!b) return;
     var changed = form.category !== b.dataset.cat;
     form.category = b.dataset.cat;
-    if (INFRA_CATS.indexOf(form.category) >= 0) setWho('夫');  // 手動で変更も可能
+    if (INFRA_CATS.indexOf(form.category) >= 0) setWhoSync('夫');  // 手動で変更も可能
     renderModalCats();
     if (changed) syncStoreSel();   // カテゴリが変わったら、店名プルダウンをそのカテゴリの店名リストへ切り替える
   });
