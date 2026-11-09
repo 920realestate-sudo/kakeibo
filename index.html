@@ -265,6 +265,15 @@ button.chip { border: none; font-family: inherit; cursor: pointer; transition: t
 .store-row select, .store-row input { flex: 1; min-width: 0; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font-size: 16px; font-family: inherit; background: #fff; color: var(--text); }
 .store-row select:focus, .store-row input:focus { outline: none; border-color: var(--accent); }
 .store-row .ghost.sm { height: 40px; white-space: nowrap; }
+.store-combo { position: relative; flex: 1; min-width: 0; }
+.store-combo input { width: 100%; padding-right: 40px; }
+.store-arrow { position: absolute; right: 0; top: 0; width: 40px; height: 40px; border: none; background: transparent; color: var(--sub); font-size: 12px; border-radius: 0 10px 10px 0; padding: 0; }
+.store-dd { position: absolute; left: 0; right: 0; top: 44px; z-index: 5; background: #fff; border: 1.5px solid var(--accent); border-radius: 10px; box-shadow: 0 8px 24px rgba(20,40,36,.22); max-height: 220px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.store-dd[hidden] { display: none; }
+.store-dd button { display: block; width: 100%; min-height: 44px; text-align: left; border: none; border-top: 1px solid var(--line); background: #fff; color: var(--text); font-size: 16px; font-family: inherit; padding: 8px 12px; overflow-wrap: anywhere; }
+.store-dd button:first-child { border-top: none; }
+.store-dd button:active, .store-dd button:hover { background: var(--accent-soft); }
+.store-dd button.cur { font-weight: 700; color: var(--accent-dark); }
 .store-suggest { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; padding: 6px 10px; border-radius: 10px; background: #fff7d6; border: 1.5px solid #f2c94c; color: #7a5a00; font-size: 12.5px; font-weight: 600; }
 .store-suggest[hidden] { display: none; }
 .store-suggest .ghost.sm { height: 30px; font-size: 12px; }
@@ -620,7 +629,11 @@ input:focus { outline: none; border-color: var(--accent); }
     <div class="field">
       <label for="storeSel">店名（購入したお店）</label>
       <div class="store-row">
-        <input type="text" id="storeSel" list="storeDl" maxlength="30" placeholder="店名を選択、または直接入力" autocomplete="off"><datalist id="storeDl"></datalist>
+        <div class="store-combo" id="storeCombo">
+          <input type="text" id="storeSel" maxlength="30" placeholder="店名を選択、または直接入力" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="storeDd">
+          <button type="button" class="store-arrow" id="storeArrow" aria-label="店名の候補を開く" tabindex="-1">▼</button>
+          <div class="store-dd" id="storeDd" role="listbox" hidden></div>
+        </div>
         <button type="button" class="ghost sm" id="storeMgr">⚙️ 店名管理</button>
       </div>
       <div class="store-suggest" id="storeSuggest" hidden>
@@ -2310,12 +2323,27 @@ input:focus { outline: none; border-color: var(--accent); }
   }
   // 店名プルダウン：現在選択中のカテゴリの店名だけを表示する（先頭は「店名を選択」）
   function renderStoreSel(selectedName) {
-    // 店名欄は「候補（datalist）から選ぶ」＋「自由に直接入力」の両対応。候補は選択中カテゴリの店名リスト
-    var sel = $('storeSel'), dl = $('storeDl');
-    dl.innerHTML = '';
-    storesOf(form.category).forEach(function (n) { var o = document.createElement('option'); o.value = n; dl.appendChild(o); });
+    // 店名欄は「候補（自前のドロップダウン）から選ぶ」＋「自由に直接入力」の両対応。候補は選択中カテゴリの店名リスト
+    var sel = $('storeSel');
+    closeStoreDd();
     sel.value = selectedName || '';   // 登録済み支出の店名がリストにない場合も、そのまま表示して値を保持する
     sel.placeholder = storesOf(form.category).length ? '店名を選択、または直接入力' : '店名を直接入力（このカテゴリは未登録）';
+  }
+  // 店名ドロップダウン（datalist は iOS で出ないので自前）。filter=true なら入力中の文字で絞り込む
+  function closeStoreDd() { var d = $('storeDd'); d.hidden = true; $('storeSel').setAttribute('aria-expanded', 'false'); }
+  function openStoreDd(filter) {
+    var d = $('storeDd'), cur = $('storeSel').value.trim(), k = normStore(cur);
+    var list = storesOf(form.category).filter(function (n) { return !filter || !k || normStore(n).indexOf(k) >= 0; });
+    d.innerHTML = '';
+    if (!list.length) { closeStoreDd(); return; }
+    list.forEach(function (n) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.setAttribute('role', 'option'); b.dataset.name = n; b.textContent = n;
+      if (normStore(n) === k) b.className = 'cur';
+      d.appendChild(b);
+    });
+    d.hidden = false; d.scrollTop = 0;
+    $('storeSel').setAttribute('aria-expanded', 'true');
   }
   function isMasterStore(name) {
     var k = normStore(name);
@@ -2505,7 +2533,26 @@ input:focus { outline: none; border-color: var(--accent); }
     renderStoreList();
     if (mgrCat === form.category) renderStoreSel(cur === name ? '' : cur);
   });
-  $('storeSel').addEventListener('input', function () { this.classList.remove('ocr-filled'); hideStoreSuggest(); });
+  $('storeSel').addEventListener('input', function () { this.classList.remove('ocr-filled'); hideStoreSuggest(); openStoreDd(true); });
+  $('storeSel').addEventListener('focus', function () { openStoreDd(false); });
+  $('storeSel').addEventListener('click', function () { if ($('storeDd').hidden) openStoreDd(false); });
+  $('storeSel').addEventListener('keydown', function (e) { if (e.key === 'Escape' || e.key === 'Enter') closeStoreDd(); });
+  $('storeArrow').addEventListener('click', function () {   // ▼：開閉トグル（開くときは全候補を出す）
+    if ($('storeDd').hidden) { openStoreDd(false); } else { closeStoreDd(); }
+  });
+  $('storeDd').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-name]') : null;
+    if (!b) return;
+    var s = $('storeSel');
+    s.value = b.dataset.name;
+    s.classList.remove('ocr-filled');
+    hideStoreSuggest();
+    closeStoreDd();
+    s.blur();   // iPhone ではキーボードも閉じる
+  });
+  document.addEventListener('pointerdown', function (e) {   // 欄の外をタップしたら閉じる
+    if (!$('storeDd').hidden && !$('storeCombo').contains(e.target)) closeStoreDd();
+  });
   $('storeSel').addEventListener('change', function () {   // 入力確定時：このカテゴリの店名リストにない店名なら、ワンタップ追加を案内
     this.classList.remove('ocr-filled');
     var v = this.value.trim();
