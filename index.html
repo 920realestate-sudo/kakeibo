@@ -248,17 +248,6 @@ button.chip { border: none; font-family: inherit; cursor: pointer; transition: t
 #dateIn:focus { outline: none; border-color: var(--accent); }
 #datePick { height: 40px; width: 46px; padding: 0; font-size: 18px; }
 .date-picker-hidden { position: absolute; right: 0; top: 0; width: 46px; height: 40px; opacity: 0; pointer-events: none; border: 0; padding: 0; }   /* 📅 ボタンの真上に重ね、ピッカーがボタン付近に開くようにする */
-.ocr-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #eef6ff; color: #2f62c4; font-size: 12.5px; font-weight: 600; }
-.ocr-status[hidden] { display: none; }
-.ocr-status.ok { background: #e7f7f2; color: #0f7a5e; }
-.ocr-status.ng { background: #fdeceb; color: #c0392b; }
-.ocr-txt { flex: 1; min-width: 0; }
-.ocr-bar { height: 5px; border-radius: 3px; background: rgba(47,98,196,.18); margin-top: 5px; overflow: hidden; }
-.ocr-bar i { display: block; height: 100%; width: 0; background: #2f62c4; transition: width .2s; }
-.ocr-status.ok .ocr-bar, .ocr-status.ng .ocr-bar { display: none; }
-.spin { flex: none; width: 16px; height: 16px; border: 2.5px solid rgba(47,98,196,.25); border-top-color: #2f62c4; border-radius: 50%; animation: spin .8s linear infinite; }
-.ocr-status.ok .spin, .ocr-status.ng .spin { display: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; max-width: calc(100vw - 32px); background: rgba(30,40,38,.94); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .2s; text-align: center; }
 .toast.show { opacity: 1; }
 .store-row { display: flex; gap: 6px; align-items: center; }
@@ -322,9 +311,6 @@ button.chip { border: none; font-family: inherit; cursor: pointer; transition: t
 .srow .sdel { flex: none; border: none; background: #fdeceb; color: var(--danger); border-radius: 8px; height: 32px; padding: 0 10px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; }
 .srow .sdel.confirm { background: var(--danger); color: #fff; }
 .sbadge { display: inline-block; font-size: 11px; font-weight: 700; color: #6a5300; background: #fff1bf; border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
-.ocr-review { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: #fff7d6; border: 1.5px solid #f2c94c; color: #7a5a00; font-size: 13.5px; font-weight: 700; line-height: 1.5; }
-.ocr-review[hidden] { display: none; }
-.ocr-filled { background: #fffbe6 !important; border-color: #f2c94c !important; }
 #form .actions { position: sticky; bottom: 0; z-index: 2; background: #fff; padding: 8px 0 2px; box-shadow: 0 -8px 8px -8px rgba(0,0,0,.15); }   /* 画面が低くても確認・登録ボタンが常に見える */
 .rc-layout { display: block; }
 .rc-side { margin-bottom: 10px; text-align: center; background: #f3f6f5; border-radius: 12px; padding: 6px; }
@@ -339,10 +325,20 @@ button.chip { border: none; font-family: inherit; cursor: pointer; transition: t
   #form.has-photo .rc-side { position: sticky; top: 0; margin-bottom: 0; }
   #form.has-photo .rc-side img { max-height: 64vh; }
 }
-.photo-prev[hidden] { display: none; }
-.photo-prev { display: inline-flex; align-items: center; gap: 6px; }
-.photo-prev img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; }
-.photo-del { border: none; background: #fdeceb; color: var(--danger); border-radius: 8px; height: 30px; padding: 0 10px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.photo-full { margin-top: 6px; font-size: 12px; font-weight: 700; color: #7a5a00; background: #fff7d6; border: 1.5px solid #f2c94c; border-radius: 10px; padding: 6px 10px; }
+.photo-full[hidden], .photo-thumbs[hidden] { display: none; }
+.photo-thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.pth { position: relative; width: 64px; height: 64px; }
+.pth img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 2px solid var(--line); background: #f3f6f5; cursor: zoom-in; display: block; }
+.pth.on img { border-color: var(--accent); }
+.pth-x { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; background: var(--danger); color: #fff; font-size: 12px; font-weight: 700; line-height: 1; padding: 0; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.photo-row .ghost.sm:disabled { opacity: .45; cursor: default; }
+.rc-wrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.rc-wrap .rc-body { flex: 1 1 auto; }
+.rc-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 44px; height: 56px; border: none; border-radius: 12px; background: rgba(30,40,38,.55); color: #fff; font-size: 18px; padding: 0; }
+.rc-nav[hidden] { display: none; }
+.rc-nav:disabled { opacity: .25; cursor: default; }
+.rc-prev { left: 4px; } .rc-next { right: 4px; }
 .rcpt { display: inline-block; border: none; background: #eef6ff; color: #2f62c4; border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; margin-top: 3px; }
 .rcpt:hover { background: #dbeafe; }
 #overlay9 { z-index: 40; }
@@ -351,7 +347,6 @@ button.chip { border: none; font-family: inherit; cursor: pointer; transition: t
 .rc-body { touch-action: pan-x pan-y pinch-zoom; }
 .rc-body img { cursor: zoom-in; }
 .rc-body img.zoomed { max-width: none; max-height: none; width: 190%; cursor: zoom-out; }
-.cats button.ocr-pick { box-shadow: 0 0 0 3px #f2c94c; }
 .rc-body img { max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 8px; }
 .rc-cap { flex: none; margin-top: 8px; font-size: 13px; color: var(--sub); text-align: center; }
 .modal.wide { max-width: 640px; }
@@ -593,7 +588,6 @@ input:focus { outline: none; border-color: var(--accent); }
 <div class="overlay" id="overlay">
   <form class="modal" id="form" novalidate>
     <h3 id="modalTitle"></h3>
-    <div class="ocr-review" id="ocrReview" hidden role="status">🔍 読み取り結果を確認してください（誤りがあれば手動で修正してください）</div>
     <div class="rc-layout">
     <aside class="rc-side" id="rcSide" hidden>
       <img id="sideImg" alt="レシート写真（クリックで拡大）" title="クリック／タップで拡大">
@@ -646,20 +640,15 @@ input:focus { outline: none; border-color: var(--accent); }
       <input type="text" id="memo" maxlength="300" autocomplete="off">
     </div>
     <div class="field">
-      <label>レシート写真（任意）</label>
+      <label id="photoLabel">レシート写真（0/5枚）（任意）</label>
       <div class="photo-row">
-        <button type="button" class="ghost sm" id="photoBtn">📷 レシート写真を添付</button>
-        <button type="button" class="ghost sm" id="photoLibBtn">🖼 選択</button>
-        <span class="photo-prev" id="photoPrev" hidden>
-          <button type="button" class="photo-del" id="photoDel">✕ 写真を削除</button>
-        </span>
+        <button type="button" class="ghost sm" id="photoBtn">📷 撮影して追加</button>
+        <button type="button" class="ghost sm" id="photoLibBtn">🖼 選択して追加（複数可）</button>
       </div>
+      <div class="photo-full" id="photoFull" hidden>写真は最大5枚までです。追加するには、不要な写真の ✕ で取り消してください。</div>
+      <div class="photo-thumbs" id="photoThumbs" hidden></div>
       <input type="file" id="photoFile" accept="image/*" capture="environment" hidden>
-      <input type="file" id="photoLib" accept="image/*" hidden>
-      <div class="ocr-status" id="ocrStatus" hidden role="status" aria-live="polite">
-        <span class="spin" id="ocrSpin"></span>
-        <div class="ocr-txt"><span id="ocrMsg"></span><div class="ocr-bar" id="ocrBarWrap"><i id="ocrBar"></i></div></div>
-      </div>
+      <input type="file" id="photoLib" accept="image/*" multiple hidden>
     </div>
     <div class="field">
       <label>記録する人（登録・更新者）</label>
@@ -722,7 +711,11 @@ input:focus { outline: none; border-color: var(--accent); }
       <h3 id="rcTitle">🧾 レシート</h3>
       <button type="button" class="dclose" id="rcClose" aria-label="閉じる">✕</button>
     </div>
-    <div class="rc-body"><img id="rcImg" alt="レシート写真"></div>
+    <div class="rc-wrap">
+      <button type="button" class="rc-nav rc-prev" id="rcPrev" aria-label="前の写真" hidden>◀</button>
+      <div class="rc-body"><img id="rcImg" alt="レシート写真"></div>
+      <button type="button" class="rc-nav rc-next" id="rcNext" aria-label="次の写真" hidden>▶</button>
+    </div>
     <div class="rc-cap" id="rcCap"></div>
   </div>
 </div>
@@ -909,6 +902,18 @@ input:focus { outline: none; border-color: var(--accent); }
     } catch (e) {}
     return withSettings({ expenses: [], categories: DEFAULT_CATS.slice(), colors: {} });
   }
+  // レシート写真の参照：data URL（Base64。端末内・未アップロード）か、Storage 上のパス（'r/<id>_<hash>.jpg'）
+  var MAX_PHOTO_N = 5;
+  function validPhoto(p) { return typeof p === 'string' && (p.indexOf('data:image/') === 0 || /^r\/[\w.\-]+$/.test(p)); }
+  // 配列／1枚の文字列／JSON 配列の文字列のどれでも、有効な参照の配列（最大5枚・重複なし）にする
+  function parsePhotos(v) {
+    if (typeof v === 'string' && v.charAt(0) === '[') { try { v = JSON.parse(v); } catch (e) { v = null; } }
+    if (typeof v === 'string') v = [v];
+    if (!Array.isArray(v)) return [];
+    return v.filter(function (p, i) { return validPhoto(p) && v.indexOf(p) === i; }).slice(0, MAX_PHOTO_N);
+  }
+  // クラウドの receipt_image 列へ入れる形：なし=null／1枚=その文字列（旧版と同じ）／2枚以上=JSON 配列の文字列
+  function packPhotos(a) { return !a || !a.length ? null : a.length === 1 ? a[0] : JSON.stringify(a); }
   // 旧データ（メタデータなし）でも落ちないよう初期値を補う
   function withMeta(x) {
     if (typeof x.date !== 'string') x.date = '1970-01-01';
@@ -919,7 +924,9 @@ input:focus { outline: none; border-color: var(--accent); }
     if (!x.id) x.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     if (typeof x.store !== 'string') x.store = '';   // 店名（旧データは空）
     // レシート写真：data URL（Base64。端末内・未アップロード）か、Storage 上のパス（'r/<id>_<hash>.jpg'）
-    if (typeof x.photo !== 'string' || !(x.photo.indexOf('data:image/') === 0 || /^r\/[\w.\-]+$/.test(x.photo))) x.photo = null;
+    // 複数枚（最大5枚）は x.photos（配列）。旧データの x.photo（1枚の文字列）や、クラウドの JSON 文字列も読み込んで配列にそろえる
+    x.photos = parsePhotos(x.photos != null ? x.photos : x.photo);
+    delete x.photo;
     if (typeof x.createdAt !== 'string') x.createdAt = '';
     if (x.createdBy !== '夫' && x.createdBy !== '妻') x.createdBy = '';
     if (typeof x.updatedAt !== 'string') x.updatedAt = x.createdAt;
@@ -1200,8 +1207,8 @@ input:focus { outline: none; border-color: var(--accent); }
     return x.store ? el('span', 'sbadge', '🏪 ' + x.store) : null;
   }
   function rcptBadge(x) {
-    if (!x.photo) return null;
-    var b = el('button', 'rcpt', '🧾 写真あり');
+    if (!x.photos || !x.photos.length) return null;
+    var b = el('button', 'rcpt', x.photos.length > 1 ? '🧾 写真' + x.photos.length + '枚' : '🧾 写真あり');
     b.type = 'button'; b.dataset.id = x.id; b.title = 'レシート写真を拡大';
     return b;
   }
@@ -2127,32 +2134,39 @@ input:focus { outline: none; border-color: var(--accent); }
     setWho(w);
     if (!editingId) setOp(w);
   }
-  // ---------- レシート写真 ----------
-  var formPhoto = null;   // 入力モーダルで保持中の写真（data URL）または null
-  var formPhotoBase = null, photoReq = 0;   // formPhotoBase＝編集を開いた時点の写真（変更の有無の判定用）
-  function setPhoto(p) {
-    formPhoto = p || null;
-    $('photoPrev').hidden = !formPhoto;
-    $('rcSide').hidden = !formPhoto;                        // 写真があれば画像とフォームを見比べられる配置にする
-    $('form').classList.toggle('has-photo', !!formPhoto);
-    var req = ++photoReq;
+  // ---------- レシート写真（1件につき最大5枚） ----------
+  var MAX_PHOTOS = 5;
+  var formPhotos = [];       // 入力モーダルで保持中の写真（data URL または Storage 上のパス）
+  var formPhotosBase = [];   // 編集を開いた時点の写真（変更の有無の判定用）
+  var photoReq = 0, photoTok = 0, adding = 0, sideIdx = 0;   // photoTok＝モーダルを開くたびに更新（読み込み中の写真の取り違え防止）、sideIdx＝横に大きく出す写真
+  function samePhotos(a, b) { return a.length === b.length && a.every(function (v, i) { return v === b[i]; }); }
+  function setPhotos(list) {
+    formPhotos = (list || []).slice(0, MAX_PHOTOS);
+    sideIdx = Math.max(0, formPhotos.length - 1);
+    renderPhotoUI();
+  }
+  function renderPhotoUI() {
+    var n = formPhotos.length, full = n >= MAX_PHOTOS, req = ++photoReq, warned = false;
+    $('photoLabel').textContent = 'レシート写真（' + n + '/' + MAX_PHOTOS + '枚）（任意）';
+    $('photoBtn').disabled = full; $('photoLibBtn').disabled = full;
+    $('photoFull').hidden = !full;
+    var box = $('photoThumbs');
+    box.innerHTML = ''; box.hidden = !n;
+    function fail() { if (!warned && req === photoReq) { warned = true; toast('写真を読み込めません（オフライン？）。接続すると表示されます'); } }
+    formPhotos.forEach(function (ref, i) {
+      var w = el('div', 'pth' + (i === sideIdx ? ' on' : ''));
+      var im = document.createElement('img');
+      im.alt = 'レシート写真' + (i + 1) + '枚目（タップで拡大）'; im.dataset.i = String(i);
+      var xb = el('button', 'pth-x', '✕');
+      xb.type = 'button'; xb.dataset.i = String(i); xb.setAttribute('aria-label', (i + 1) + '枚目の写真を取り消す');
+      w.appendChild(im); w.appendChild(xb); box.appendChild(w);
+      photoSrc(ref).then(function (u) { if (req === photoReq && u) im.src = u; }).catch(fail);   // Storage 上の写真は取得してから表示（取得済みなら端末のキャッシュから即時）
+    });
+    $('rcSide').hidden = !n;                       // 写真があれば画像とフォームを見比べられる配置にする
+    $('form').classList.toggle('has-photo', !!n);
     $('sideImg').removeAttribute('src');
-    if (formPhoto) {   // Storage 上の写真は取得してから表示する（取得済みなら端末のキャッシュから即時）
-      photoSrc(formPhoto).then(function (u) { if (req === photoReq && formPhoto && u) $('sideImg').src = u; })
-        .catch(function () { if (req === photoReq) toast('写真を読み込めません（オフライン？）。接続すると表示されます'); });
-    }
-    $('photoBtn').textContent = formPhoto ? '📷 撮り直す' : '📷 レシート写真を添付';
-    if (!formPhoto) clearReview();
+    if (n) photoSrc(formPhotos[sideIdx]).then(function (u) { if (req === photoReq && u) $('sideImg').src = u; }).catch(fail);
   }
-  // 読み取り結果の確認バー・自動入力欄のハイライトを消す
-  function clearReview() {
-    $('ocrReview').hidden = true;
-    ['amount', 'dateIn', 'memo', 'storeSel'].forEach(function (id) { $(id).classList.remove('ocr-filled'); });
-    Array.prototype.forEach.call($('catBtns').querySelectorAll('.ocr-pick'), function (b) { b.classList.remove('ocr-pick'); });
-  }
-  ['amount', 'dateIn', 'memo'].forEach(function (id) {   // 手で直した欄はハイライトを外す
-    $(id).addEventListener('input', function () { this.classList.remove('ocr-filled'); });
-  });
   // 金額欄はタップ／フォーカスで全選択し、数字の打ち直しを素早くできるようにする
   $('amount').addEventListener('focus', function () { var el_ = this; setTimeout(function () { el_.select(); }, 0); });
   $('amount').addEventListener('mouseup', function (e) { e.preventDefault(); });
@@ -2178,50 +2192,113 @@ input:focus { outline: none; border-color: var(--accent); }
     };
     rd.readAsDataURL(file);
   }
-  function onPhotoPicked(inp) {
-    var f = inp.files && inp.files[0];
+  function onPhotosPicked(inp) {   // まとめて複数選択もOK。5枚を超える分は追加しない
+    var files = Array.prototype.slice.call(inp.files || []);
     inp.value = '';   // 同じファイルを続けて選べるように
-    if (!f) return;
-    if (f.type && f.type.indexOf('image/') !== 0) { $('err').textContent = '画像ファイルを選んでください'; return; }
-    compressImage(f, function (url) {
-      if (!url) { $('err').textContent = '画像を読み込めませんでした（別の形式でお試しください）'; return; }
-      $('err').textContent = '';
-      setPhoto(url);
-      runOcr(f);   // 添付した瞬間に自動解析（認識用に元画像から別途、高解像度・二値化の画像を作る）
+    if (!files.length) return;
+    var imgs = files.filter(function (f) { return !f.type || f.type.indexOf('image/') === 0; });
+    if (!imgs.length) { $('err').textContent = '画像ファイルを選んでください'; return; }
+    var room = MAX_PHOTOS - formPhotos.length - adding;
+    if (room <= 0) { toast('写真は最大' + MAX_PHOTOS + '枚までです'); return; }
+    if (imgs.length > room) { toast('写真は最大' + MAX_PHOTOS + '枚までです。先頭の' + room + '枚だけ追加しました'); imgs = imgs.slice(0, room); }
+    var tok = photoTok, failed = 0, chain = Promise.resolve();
+    adding += imgs.length;
+    imgs.forEach(function (f) {
+      chain = chain.then(function () {
+        return new Promise(function (res) {
+          compressImage(f, function (url) {
+            if (tok === photoTok) {
+              adding--;
+              if (!url) failed++;
+              else if (formPhotos.length < MAX_PHOTOS) { formPhotos.push(url); sideIdx = formPhotos.length - 1; renderPhotoUI(); }
+            }
+            res();
+          });
+        });
+      });
+    });
+    chain.then(function () {
+      if (tok !== photoTok) return;
+      $('err').textContent = failed ? '読み込めない画像がありました（別の形式でお試しください）' : '';
     });
   }
   $('photoBtn').addEventListener('click', function () { $('photoFile').click(); });
   $('photoLibBtn').addEventListener('click', function () { $('photoLib').click(); });
-  $('photoFile').addEventListener('change', function () { onPhotoPicked(this); });
-  $('photoLib').addEventListener('change', function () { onPhotoPicked(this); });
-  $('photoDel').addEventListener('click', function () { setPhoto(null); });
-  $('sideImg').addEventListener('click', function () { if (formPhoto) openReceipt(null, formPhoto); });
+  $('photoFile').addEventListener('change', function () { onPhotosPicked(this); });
+  $('photoLib').addEventListener('change', function () { onPhotosPicked(this); });
+  $('photoThumbs').addEventListener('click', function (e) {
+    var xb = e.target.closest('.pth-x'), im = e.target.closest('.pth img');
+    if (xb) {   // 1枚だけ取り消す
+      var i = Number(xb.dataset.i);
+      formPhotos.splice(i, 1);
+      if (sideIdx >= formPhotos.length) sideIdx = Math.max(0, formPhotos.length - 1);
+      $('err').textContent = '';
+      renderPhotoUI();
+    } else if (im) {   // サムネイルをタップ：その写真を拡大表示
+      sideIdx = Number(im.dataset.i);
+      renderPhotoUI();
+      openViewer(formPhotos, sideIdx, '入力中のレシート写真');
+    }
+  });
+  $('sideImg').addEventListener('click', function () { if (formPhotos.length) openViewer(formPhotos, sideIdx, '入力中のレシート写真'); });
   $('rcImg').addEventListener('click', function () { this.classList.toggle('zoomed'); });   // プレビュー内：タップで拡大／縮小（ピンチも可）
 
-  // レシートプレビュー
-  function openReceipt(id, src) {
-    var x = id ? findExp(id) : null;
-    var ref = src || (x && x.photo);
-    if (!ref) return;
-    $('rcImg').classList.remove('zoomed');
-    $('rcImg').removeAttribute('src');
-    $('rcCap').textContent = x ? x.date.replace(/-/g, '/') + '　' + x.category + '　' + yen(x.amount) + (x.memo ? '　' + x.memo : '') : 'プレビュー';
+  // レシートプレビュー（複数枚は ◀ ▶／左右キー／スワイプで切り替え）
+  var rcList = [], rcIdx = 0, rcCapTxt = '', rcReq = 0;
+  function openViewer(list, idx, cap) {
+    if (!list || !list.length) return;
+    rcList = list.slice(); rcIdx = Math.min(Math.max(0, idx || 0), rcList.length - 1); rcCapTxt = cap || '';
     $('overlay9').classList.add('open');
-    var req = ++rcReq;
-    photoSrc(ref).then(function (u) { if (req === rcReq && $('overlay9').classList.contains('open') && u) $('rcImg').src = u; })
-      .catch(function () { if (req === rcReq) { closeReceipt(); toast('写真を読み込めません（オフライン？）。接続すると表示されます'); } });
+    showViewer();
   }
-  var rcReq = 0;
-  function closeReceipt() { $('overlay9').classList.remove('open'); $('rcImg').removeAttribute('src'); }
+  function showViewer() {
+    var n = rcList.length, img = $('rcImg');
+    img.classList.remove('zoomed');
+    img.removeAttribute('src');
+    $('rcPrev').hidden = $('rcNext').hidden = n < 2;
+    $('rcPrev').disabled = rcIdx <= 0;
+    $('rcNext').disabled = rcIdx >= n - 1;
+    $('rcTitle').textContent = '🧾 レシート' + (n > 1 ? '（' + (rcIdx + 1) + '/' + n + '枚）' : '');
+    $('rcCap').textContent = rcCapTxt;
+    var req = ++rcReq;
+    photoSrc(rcList[rcIdx]).then(function (u) { if (req === rcReq && $('overlay9').classList.contains('open') && u) img.src = u; })
+      .catch(function () { if (req === rcReq) { toast('写真を読み込めません（オフライン？）。接続すると表示されます'); } });
+  }
+  function stepViewer(d) {
+    var j = rcIdx + d;
+    if (j < 0 || j >= rcList.length) return;
+    rcIdx = j; showViewer();
+  }
+  function openReceipt(id) {
+    var x = findExp(id);
+    if (!x || !x.photos.length) return;
+    openViewer(x.photos, 0, x.date.replace(/-/g, '/') + '　' + x.category + '　' + yen(x.amount) + (x.memo ? '　' + x.memo : ''));
+  }
+  function closeReceipt() { $('overlay9').classList.remove('open'); $('rcImg').removeAttribute('src'); rcReq++; }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('.rcpt[data-id]');
     if (b) { e.stopPropagation(); openReceipt(b.dataset.id); }
   });
   $('rcClose').addEventListener('click', closeReceipt);
+  $('rcPrev').addEventListener('click', function () { stepViewer(-1); });
+  $('rcNext').addEventListener('click', function () { stepViewer(1); });
   $('overlay9').addEventListener('click', function (e) { if (e.target === $('overlay9')) closeReceipt(); });
-  // Esc：プレビューが開いているときは、それだけを閉じる（下のモーダルは残す）
+  (function () {   // スワイプ（拡大中は画像のスクロールを優先）
+    var sx = 0, sy = 0, on = false, body = document.querySelector('.rc-body');
+    body.addEventListener('touchstart', function (e) { on = e.touches.length === 1; if (on) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, { passive: true });
+    body.addEventListener('touchend', function (e) {
+      if (!on || $('rcImg').classList.contains('zoomed')) return;
+      on = false;
+      var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) stepViewer(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  })();
+  // Esc：プレビューが開いているときは、それだけを閉じる（下のモーダルは残す）。左右キーで切り替え
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && $('overlay9').classList.contains('open')) { closeReceipt(); e.stopImmediatePropagation(); e.preventDefault(); }
+    if (!$('overlay9').classList.contains('open')) return;
+    if (e.key === 'Escape') { closeReceipt(); e.stopImmediatePropagation(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { stepViewer(-1); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { stepViewer(1); e.preventDefault(); }
   }, true);
 
   // ---------- 更新履歴（ホバーの吹き出し／クリックのモーダルで共通）----------
@@ -2308,20 +2385,6 @@ input:focus { outline: none; border-color: var(--accent); }
   function normStore(s) { return String(s || '').toLowerCase().replace(/[\s　\-ー・‐-―]/g, ''); }
   function storesOf(cat) { return Array.isArray(data.stores[cat]) ? data.stores[cat] : []; }          // 読み取り用（なければ空）
   function storeArr(cat) { if (!Array.isArray(data.stores[cat])) data.stores[cat] = []; return data.stores[cat]; }   // 書き込み用（なければ作る）
-  // 文字列に含まれる店名をマスターから探す。最も長く一致したものを返し、同点なら優先カテゴリ(prefCat)を選ぶ。{ name, cat } または null
-  function findStore(text, prefCat) {
-    var t = normStore(text), best = null;
-    if (!t) return null;
-    Object.keys(data.stores).forEach(function (cat) {
-      storesOf(cat).forEach(function (n) {
-        var k = normStore(n);
-        if (!k || t.indexOf(k) < 0) return;
-        if (!best || k.length > best.len || (k.length === best.len && cat === prefCat && best.cat !== prefCat)) best = { name: n, cat: cat, len: k.length };
-      });
-    });
-    return best ? { name: best.name, cat: best.cat } : null;
-  }
-  // 店名プルダウン：現在選択中のカテゴリの店名だけを表示する（先頭は「店名を選択」）
   function renderStoreSel(selectedName) {
     // 店名欄は「候補（自前のドロップダウン）から選ぶ」＋「自由に直接入力」の両対応。候補は選択中カテゴリの店名リスト
     var sel = $('storeSel');
@@ -2354,7 +2417,7 @@ input:focus { outline: none; border-color: var(--accent); }
     var cur = $('storeSel').value.trim();
     // 新カテゴリのリストにある店名は残す。他カテゴリの登録店名は外す。手入力の店名（どこにも未登録）は残す
     renderStoreSel(cur && (storesOf(form.category).indexOf(cur) >= 0 || !isMasterStore(cur)) ? cur : '');
-    $('storeSel').classList.remove('ocr-filled');
+   
     hideStoreSuggest();
   }
   function hideStoreSuggest() { $('storeSuggest').hidden = true; $('storeSuggest').dataset.name = ''; }
@@ -2511,7 +2574,7 @@ input:focus { outline: none; border-color: var(--accent); }
     if (!added) { $('storeNew').focus(); return; }
     $('storeNew').value = '';
     renderStoreList();
-    if (mgrCat === form.category) { renderStoreSel(added); $('storeSel').classList.remove('ocr-filled'); }   // 追加した店名をそのまま選択状態にする
+    if (mgrCat === form.category) { renderStoreSel(added); }   // 追加した店名をそのまま選択状態にする
     hideStoreSuggest();
   }
   $('storeAddBtn').addEventListener('click', doStoreAdd);
@@ -2533,7 +2596,7 @@ input:focus { outline: none; border-color: var(--accent); }
     renderStoreList();
     if (mgrCat === form.category) renderStoreSel(cur === name ? '' : cur);
   });
-  $('storeSel').addEventListener('input', function () { this.classList.remove('ocr-filled'); hideStoreSuggest(); openStoreDd(true); });
+  $('storeSel').addEventListener('input', function () { hideStoreSuggest(); openStoreDd(true); });
   $('storeSel').addEventListener('focus', function () { openStoreDd(false); });
   $('storeSel').addEventListener('click', function () { if ($('storeDd').hidden) openStoreDd(false); });
   $('storeSel').addEventListener('keydown', function (e) { if (e.key === 'Escape' || e.key === 'Enter') closeStoreDd(); });
@@ -2545,7 +2608,6 @@ input:focus { outline: none; border-color: var(--accent); }
     if (!b) return;
     var s = $('storeSel');
     s.value = b.dataset.name;
-    s.classList.remove('ocr-filled');
     hideStoreSuggest();
     closeStoreDd();
     s.blur();   // iPhone ではキーボードも閉じる
@@ -2554,7 +2616,6 @@ input:focus { outline: none; border-color: var(--accent); }
     if (!$('storeDd').hidden && !$('storeCombo').contains(e.target)) closeStoreDd();
   });
   $('storeSel').addEventListener('change', function () {   // 入力確定時：このカテゴリの店名リストにない店名なら、ワンタップ追加を案内
-    this.classList.remove('ocr-filled');
     var v = this.value.trim();
     if (v && !storesOf(form.category).some(function (n) { return normStore(n) === normStore(v); })) showStoreSuggest(v); else hideStoreSuggest();
   });
@@ -2580,7 +2641,7 @@ input:focus { outline: none; border-color: var(--accent); }
     if (y < 2000 || y > 2100 || dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
     return y + '-' + pad(mo) + '-' + pad(d);
   }
-  // 日付の下限：今年の1月1日（1月中だけは、年末のレシート用に前年12月1日から）。OCRの自動設定と日付ピッカーに使う
+  // 日付の下限：今年の1月1日（1月中だけは、年末のレシート用に前年12月1日から）。日付ピッカーに使う
   function minDateStr() {
     var t = new Date(), y = t.getFullYear();
     return t.getMonth() === 0 ? (y - 1) + '-12-01' : y + '-01-01';
@@ -2609,435 +2670,14 @@ input:focus { outline: none; border-color: var(--accent); }
     if (this.value) { $('dateIn').value = this.value; updateModalTitle(); }
   });
 
-  // ---------- レシートOCR（Tesseract.js・ブラウザ内で解析） ----------
-  var TESS_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-  var tessPromise = null, ocrToken = 0, ocrBusy = false, toastTimer = null;
+  // ---------- 通知（トースト） ----------
+  var toastTimer = null;
   function toast(msg) {
     var t = $('toast');
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { t.classList.remove('show'); }, 4500);
-  }
-  function setOcrBusy(on) {
-    ocrBusy = on;
-    ['saveBtn', 'photoBtn', 'photoLibBtn', 'photoDel'].forEach(function (id) { $(id).disabled = on; });   // 解析中の二重操作を防止
-  }
-  // 解析状況の表示。kind: null=非表示 / 'run' / 'ok' / 'ng'
-  function showOcr(kind, msg, pct) {
-    var box = $('ocrStatus');
-    if (!kind) { box.hidden = true; return; }
-    box.hidden = false;
-    box.className = 'ocr-status' + (kind === 'run' ? '' : ' ' + kind);
-    $('ocrMsg').textContent = msg || '';
-    $('ocrBar').style.width = Math.max(3, Math.min(100, pct || 0)) + '%';
-  }
-  function loadTesseract() {
-    if (window.Tesseract) return Promise.resolve(window.Tesseract);
-    if (tessPromise) return tessPromise;
-    tessPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = TESS_URL;
-      s.onload = function () { window.Tesseract ? resolve(window.Tesseract) : reject(new Error('no Tesseract')); };
-      s.onerror = function () { reject(new Error('load failed')); };
-      document.head.appendChild(s);
-    }).catch(function (e) { tessPromise = null; throw e; });
-    return tessPromise;
-  }
-
-  // ---- 画像の前処理：グレースケール化 → コントラスト伸長 → 適応的二値化 ----
-  function buildOcrCanvases(img) {
-    var w = img.naturalWidth, h = img.naturalHeight, maxS = Math.max(w, h), minS = Math.min(w, h);
-    // 保存用の縮小写真(800px)とは別に、認識用に十分な解像度（短辺≒1100px以上、長辺≦2600px）で作る
-    var s = Math.min(2600 / maxS, Math.max(1, 1100 / minS), 2.5);
-    var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
-    var cv = document.createElement('canvas');
-    cv.width = cw; cv.height = ch;
-    var ctx = cv.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch);
-    ctx.drawImage(img, 0, 0, cw, ch);
-    var id = ctx.getImageData(0, 0, cw, ch), px = id.data, n = cw * ch;
-    var gray = new Uint8ClampedArray(n), hist = new Uint32Array(256), i;
-    for (i = 0; i < n; i++) {
-      var g = Math.round(0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]);
-      gray[i] = g; hist[g]++;
-    }
-    // コントラスト伸長（下位2%・上位2%を端に）
-    var acc = 0, lo = 0, hi = 255;
-    for (i = 0; i < 256; i++) { acc += hist[i]; if (acc >= n * 0.02) { lo = i; break; } }
-    acc = 0;
-    for (i = 255; i >= 0; i--) { acc += hist[i]; if (acc >= n * 0.02) { hi = i; break; } }
-    if (hi - lo < 30) { lo = 0; hi = 255; }
-    var span = hi - lo;
-    for (i = 0; i < n; i++) gray[i] = Math.max(0, Math.min(255, Math.round((gray[i] - lo) * 255 / span)));
-    // グレースケール画像
-    var gOut = ctx.createImageData(cw, ch);
-    for (i = 0; i < n; i++) { gOut.data[i * 4] = gOut.data[i * 4 + 1] = gOut.data[i * 4 + 2] = gray[i]; gOut.data[i * 4 + 3] = 255; }
-    var gcv = document.createElement('canvas'); gcv.width = cw; gcv.height = ch;
-    gcv.getContext('2d').putImageData(gOut, 0, 0);
-    // 適応的二値化（局所平均より十分暗い画素だけを黒にする。影・ムラに強い）
-    var W1 = cw + 1, integ = new Uint32Array(W1 * (ch + 1)), x, y, rowSum;
-    for (y = 0; y < ch; y++) {
-      rowSum = 0;
-      for (x = 0; x < cw; x++) { rowSum += gray[y * cw + x]; integ[(y + 1) * W1 + x + 1] = integ[y * W1 + x + 1] + rowSum; }
-    }
-    var R = Math.max(12, Math.round(cw / 30)), bOut = ctx.createImageData(cw, ch);
-    for (y = 0; y < ch; y++) {
-      var y0 = Math.max(0, y - R), y1 = Math.min(ch, y + R + 1);
-      for (x = 0; x < cw; x++) {
-        var x0 = Math.max(0, x - R), x1 = Math.min(cw, x + R + 1);
-        var sum = integ[y1 * W1 + x1] - integ[y0 * W1 + x1] - integ[y1 * W1 + x0] + integ[y0 * W1 + x0];
-        var mean = sum / ((x1 - x0) * (y1 - y0));
-        var v = gray[y * cw + x] < mean - 14 ? 0 : 255;
-        var o = (y * cw + x) * 4;
-        bOut.data[o] = bOut.data[o + 1] = bOut.data[o + 2] = v; bOut.data[o + 3] = 255;
-      }
-    }
-    var bcv = document.createElement('canvas'); bcv.width = cw; bcv.height = ch;
-    bcv.getContext('2d').putImageData(bOut, 0, 0);
-    return { bin: bcv, gray: gcv };
-  }
-
-  // ---- 認識テキストから 日付・合計金額・店名・カテゴリ を抽出（純粋関数）----
-  var CAT_RULES = [   // 上から順に判定（外食 → 日用品 → 食費）
-    ['外食費', /カフェ|CAFE|珈琲|コーヒー|レストラン|マクドナルド|マック|モスバーガー|ケンタッキー|バーガー|すき家|吉野家|松屋|ガスト|サイゼリヤ|スターバックス|スタバ|ドトール|タリーズ|ラーメン|食堂|居酒屋|寿司|スシロー|くら寿司|丸亀製麺|ココイチ|焼肉|うどん|そば|ファミレス|ミスタードーナツ/i],
-    ['日用品', /Seria|セリア|ダイソー|DAISO|キャンドゥ|Can\s?Do|100円|クリエイト|ウエルシア|マツモトキヨシ|マツキヨ|ドラッグ|スギ薬局|ココカラ|サンドラッグ|ツルハ|ホームセンター|カインズ|ニトリ|無印|コスモス|薬局|薬店/i],
-    ['食費', /スーパー|マート|MART|食品|LIFE|ライフ|サミット|イオン|マルエツ|西友|オーケー|業務スーパー|コープ|生協|ヨークベニマル|いなげや|ベイシア|ヤオコー|セブン|ローソン|ファミリーマート|ファミマ|ミニストップ|成城石井|ロピア|青果|精肉|鮮魚|パン屋|ベーカリー/i]
-  ];
-  // 既知チェーン辞書（正規の店名とカテゴリ）。rx=完全一致、keys=1文字違いまで許容する曖昧一致
-  var CHAINS = [
-    { name: 'クリエイト', cat: '日用品', rx: /CREATE|クリエイト|ｸﾘｴｲﾄ/i, keys: ['クリエイト', 'CREATE'] },
-    { name: 'Seria', cat: '日用品', rx: /Seria|セリア/i, keys: ['Seria', 'セリア'] },
-    { name: 'ダイソー', cat: '日用品', rx: /DAISO|ダイソー/i, keys: ['ダイソー', 'DAISO'] },
-    { name: 'キャンドゥ', cat: '日用品', rx: /キャンドゥ|Can\s?Do/i, keys: ['キャンドゥ'] },
-    { name: 'マツモトキヨシ', cat: '日用品', rx: /マツモトキヨシ|マツキヨ/, keys: ['マツモトキヨシ'] },
-    { name: 'ウエルシア', cat: '日用品', rx: /ウエルシア|ウェルシア/, keys: ['ウエルシア'] },
-    { name: 'ライフ', cat: '食費', rx: /(^|[^A-Za-z])LIFE([^A-Za-z]|$)|ライフ/, keys: [] },
-    { name: 'サミット', cat: '食費', rx: /サミット/, keys: [] },
-    { name: '西友', cat: '食費', rx: /西友|SEIYU/i, keys: [] },
-    { name: 'イオン', cat: '食費', rx: /イオン|AEON/i, keys: [] },
-    { name: 'まいばすけっと', cat: '食費', rx: /まいばす|MY\s?BASKET/i, keys: ['まいばすけっと'] },
-    { name: 'セブン-イレブン', cat: '食費', rx: /セブン[-ー]?イレブン|7-?ELEVEN/i, keys: ['セブンイレブン'] },
-    { name: 'ローソン', cat: '食費', rx: /ローソン|LAWSON/i, keys: ['ローソン'] },
-    { name: 'ファミリーマート', cat: '食費', rx: /ファミリーマート|ファミマ|FamilyMart/i, keys: ['ファミリーマート'] },
-    { name: 'マクドナルド', cat: '外食費', rx: /マクドナルド|McDonald/i, keys: ['マクドナルド'] }
-  ];
-  function extractReceipt(raw) {
-    // 全角英数字・記号を半角へ（toHalf は改行やカンマも消すので使わない）
-    var text = String(raw || '').replace(/[！-～]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
-      .replace(/[￥\\]/g, '¥').replace(/[‐－―]/g, '-');
-    // 「¥」直後の縦線(|)・小文字エル(l)・大文字アイ(I)・感嘆符(!)は、数字の「1」の誤読とみなして置換する（「¥| 893」→「¥1893」）
-    text = text.replace(/¥\s*[|lLIi!丨\[\]]\s*(?=[,.、]?\s*\d)/g, '¥1');   // 実測：「¥1,893」が「¥L893」と読まれた
-    // 「¥」に続く数字列の中の紛らわしい文字も直す：O/o→0、l/L/I/i/|/!→1（実測：「¥110」が「¥11O」と読まれた）
-    text = text.replace(/¥\s*([0-9OoDlLIi|!]+(?:\s?[,.、]\s?[0-9OoDlLIi|!]{3})*)(?![A-Za-z])/g, function (m, g) {
-      if (!/[0-9]/.test(g) || g.length < 2) return m;
-      return '¥' + g.replace(/[Oo]/g, '0').replace(/[lLIi|!]/g, '1');
-    });
-    // 「¥」自体が落ちた「合計 l,893」型も、金額キーワードを含む行に限って補正する
-    text = text.split('\n').map(function (l) {
-      return /合計|お買上|会計|決済|支払|PayPay|税込|カード/i.test(l.replace(/\s/g, ''))
-        ? l.replace(/(^|[^\dA-Za-z|])[|lLIi!丨\[\]](?=\s*[,.、]?\s*\d{3}(?!\d))/g, '$11') : l;
-    }).join('\n');
-    var dbg = { normalizedText: text, keywordLines: [], votes: null, chosen: null, taxable: null };
-    var rawLines = text.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
-    // 日本語OCRは文字間に空白が入りやすいので、キーワード判定用に空白を除去した行も持つ
-    var lines = rawLines.map(function (l) { return l.replace(/[\s　]+/g, ''); });
-    var joined = lines.join('\n');
-    var nowY = new Date().getFullYear();
-
-    // ---- 日付：数字（年・月・日）だけを取り出して YYYY-MM-DD を組み立てる ----
-    function validDate(y, m, d) {
-      if (!(y <= nowY + 1) || !(m >= 1 && m <= 12) || !(d >= 1 && d <= 31)) return null;
-      var dt = new Date(y, m - 1, d);
-      if (dt.getMonth() !== m - 1) return null;
-      var res = y + '-' + pad(m) + '-' + pad(d);
-      if (res < minDateStr()) return null;   // 誤認識（例：2001年）を防ぐ。今年より前の日付は自動設定しない
-      return res;
-    }
-    var spaced = rawLines.map(function (l) { return l.replace(/[\s　]+/g, ' '); }).join('\n');
-    var date = null, m, srcs = [spaced, joined];   // 空白あり（時刻の連結を防ぐ）→ 空白なし（文字間に空白が入るOCR）の順
-    var pats = [
-      [/令和\s?(\d{1,2})年\s?(\d{1,2})月\s?(\d{1,2})日?(?!\d)/g, function (m) { return validDate(2018 + Number(m[1]), Number(m[2]), Number(m[3])); }],
-      [/(20\d{2})\s?[年\/.\-]\s?(\d{1,2})\s?[月\/.\-]\s?(\d{1,2})(?!\d)/g, function (m) { return validDate(Number(m[1]), Number(m[2]), Number(m[3])); }],
-      [/(?:^|[^\d])(\d{2})[\/.\-](\d{1,2})[\/.\-](\d{1,2})(?!\d)/g, function (m) { return validDate(2000 + Number(m[1]), Number(m[2]), Number(m[3])); }]   // YY/MM/DD
-    ];
-    pats.forEach(function (p) {
-      srcs.forEach(function (s) {
-        p[0].lastIndex = 0;
-        while (!date && (m = p[0].exec(s))) date = p[1](m);
-      });
-    });
-    // 日付行が読めない場合の保険：決済の取引IDなど長い数字列に埋まった YYYYMMDD（例: 2135820261022100719…）を使う
-    if (!date) {
-      var runs = joined.match(/\d{12,}/g) || [];
-      runs.some(function (run) {
-        for (var q = 0; q + 8 <= run.length && !date; q++) {
-          var c8 = run.substr(q, 8);
-          if (c8.slice(0, 2) === '20') date = validDate(Number(c8.slice(0, 4)), Number(c8.slice(4, 6)), Number(c8.slice(6, 8)));
-        }
-        return !!date;
-      });
-    }
-
-    // ---- 金額 ----
-    // 桁区切りの崩れを直す：「1, 893」「1 893」「1.893」「1、893」「1,\n893」などを 1893 に揃える
-    function fixSep(s) {
-      var prev;
-      do { prev = s; s = s.replace(/(\d{1,3})[,.、'’‘`·]?\s*[,.、'’‘`·]\s*(\d{3})(?!\d)/g, '$1,$2'); } while (s !== prev);
-      return s;
-    }
-    // 行の途中で改行された金額（「¥1,」+「893」）をつなぐ
-    var mergedRaw = [];
-    rawLines.forEach(function (l) {
-      var p = mergedRaw.length - 1;
-      if (p >= 0 && /(¥|\d)\s*[,.、]\s*$/.test(mergedRaw[p]) && /^\s*\d{3}(?!\d)/.test(l)) mergedRaw[p] = mergedRaw[p].replace(/\s+$/, '') + l.trim();
-      else mergedRaw.push(l);
-    });
-    var alines = mergedRaw.map(function (l) { return fixSep(l.replace(/[\s　]+/g, ' ')).replace(/\s+/g, ''); });
-    // 行内の金額候補を取り出す。「¥ 1,893」「1, 893円」に対応。時刻(11:19)・日付・品番(CR2025)・小数・電話番号・税率(10%)・点数(2点)は除外
-    function nums(s) {
-      var out = [], r = /(¥?)(\d{1,3}(?:,\d{3})+|\d+)(円?)/g, k;
-      while ((k = r.exec(s))) {
-        var digits = k[2].replace(/,/g, ''), v = Number(digits);
-        var i = k.index, before = s.charAt(i - 1), end = i + k[0].length, after = s.charAt(end);
-        var yen = k[1] === '¥' || k[3] === '円';
-        // 品番・日付・時刻・小数・電話番号を除外（ただし「PayPay1893」のように決済名の直後は金額として扱う）
-        if (!k[1] && /[A-Za-z\/:.\-]/.test(before) && !/(paypay|rpay|merpay|nanaco|waon|suica|icoca)$/i.test(s.slice(0, i))) continue;
-        if (/[\/:\-%点個枚本冊]/.test(after) || (after === '.' && /\d/.test(s.charAt(end + 1)))) continue;
-        if (digits.length > 7 || !(v > 0)) continue;
-        out.push({ v: v, yen: yen });
-      }
-      return out;
-    }
-    function pick(list) {   // ¥付きがあればそれを優先し、その中の最大値
-      var y = list.filter(function (o) { return o.yen; });
-      var use = y.length ? y : list, best = 0;
-      use.forEach(function (o) { if (o.v > best) best = o.v; });
-      return best;
-    }
-    var EXCL = /お預|預り|預かり|おつり|お釣|釣り|釣銭|お返し|ポイント|残高/;
-    function byKeyword(re) {   // キーワード行（なければ次の行）の金額
-      var found = [];
-      alines.forEach(function (ln, i) {
-        if (!re.test(ln) || EXCL.test(ln)) return;
-        var n = nums(ln);
-        if (!n.length && alines[i + 1] && /^¥?[\d,]+円?$/.test(alines[i + 1])) n = nums(alines[i + 1]);
-        if (n.length) found.push(pick(n));
-        dbg.keywordLines.push({ keyword: String(re.source).slice(0, 18), line: ln, values: n.map(function (o) { return o.v; }) });
-      });
-      return found;
-    }
-    // 優先順：合計 → お買上 → 決済・支払 → 税込（小計は税抜のことがあるので最後の手段）
-    var groups = [/合計|総合計/, /お買上|お買い上げ|御買上|買上額|お会計|会計/, /コード決済|QR決済|決済|クレジット|カード|電子マネー|PayPay|支払/i, /税込/];
-    var votes = {}, firstPri = {}, any = false;
-    groups.forEach(function (re, gi) {
-      byKeyword(re).forEach(function (v) {
-        votes[v] = (votes[v] || 0) + 1;                       // 同じ金額が複数の行に出る＝信頼できる
-        if (firstPri[v] === undefined || gi < firstPri[v]) firstPri[v] = gi;
-        any = true;
-      });
-    });
-    var amount = null;
-    if (any) {
-      var vals = Object.keys(votes).map(Number);
-      // 先頭／末尾の桁落ち（1893→893、110→11）：より長い金額の部分文字列になっている候補は誤認識として除く
-      vals = vals.filter(function (v) {
-        var sv = String(v);
-        return !vals.some(function (w) {
-          var sw = String(w);
-          if (!(w > v) || sw.length - sv.length < 1 || sw.length - sv.length > 2) return false;
-          if (sw.slice(-sv.length) === sv || sw.slice(0, sv.length) === sv) return true;
-          var q = 0;   // 途中の桁が落ちた場合（1893→183）も、より長い金額の部分列なら誤認識とみなす
-          for (var z = 0; z < sw.length && q < sv.length; z++) if (sw.charAt(z) === sv.charAt(q)) q++;
-          return q === sv.length;
-        });
-      });
-      // 出現回数が多い → キーワード優先度が高い → 金額が大きい 順
-      vals.sort(function (a, b) { return (votes[b] - votes[a]) || (firstPri[a] - firstPri[b]) || (b - a); });
-      amount = vals[0];
-      dbg.votes = votes; dbg.survivors = vals.slice();
-    }
-    if (amount === null) { var sub = byKeyword(/小計/); if (sub.length) amount = Math.max.apply(null, sub); }
-    // 「10%対象 110」のような税率別対象額で検算：合計がそれより小さければ桁落ちとみなして補正
-    var taxable = [];
-    alines.forEach(function (ln) {
-      if (/\d{1,2}%対象|対象計/.test(ln) && !/消費税|内税/.test(ln)) { var n = nums(ln); if (n.length) taxable.push(pick(n)); }
-    });
-    if (taxable.length) {
-      var tmax = Math.max.apply(null, taxable), tsum = taxable.reduce(function (a, b) { return a + b; }, 0);
-      if (amount === null || amount < tmax) amount = tsum;
-    }
-    if (amount === null) {   // 最後の手段：¥付きの最大値（税額の行は除く）
-      var cand = [];
-      alines.forEach(function (ln) { if (!/消費税|内税|税率/.test(ln)) nums(ln).forEach(function (o) { if (o.yen) cand.push(o.v); }); });
-      if (cand.length) amount = Math.max.apply(null, cand);
-    }
-
-    // ---- 店名：既知チェーン辞書（あいまい一致）→ 上部の行（ノイズ文字列は採用しない）----
-    var headRaw = rawLines.slice(0, 12);
-    var headC = headRaw.join(' ').replace(/[\s　]+/g, '');
-    var allC = lines.join('');
-    function fuzzyHas(hay, key) {   // 4文字以上の語は、1文字違いまで許容して探す
-      var h = hay.toLowerCase(), k = key.toLowerCase();
-      if (h.indexOf(k) >= 0) return true;
-      if (k.length < 5) return false;
-      for (var i = 0; i + k.length <= h.length; i++) {
-        var bad = 0;
-        for (var j = 0; j < k.length && bad < 2; j++) if (h.charAt(i + j) !== k.charAt(j)) bad++;
-        if (bad < 2) return true;
-      }
-      return false;
-    }
-    var chain = null;
-    for (var ci = 0; ci < CHAINS.length && !chain; ci++) {
-      var cn = CHAINS[ci];
-      var hit = cn.rx.test(headC) || cn.keys.some(function (k) { return fuzzyHas(headC, k); }) || cn.rx.test(allC);
-      if (hit) chain = cn;
-    }
-    // 店名として自然か：カタカナ/英数だけの語、または「〜店・〜屋・薬局…」など店名らしい語を含み、記号やひらがな始まりの崩れがないこと
-    function plausibleStore(l) {
-      if (!l || l.length < 3 || l.length > 30) return false;
-      if (/[-_~|=<>*#\[\]{}^`\\]/.test(l)) return false;                    // 記号混じり＝文字化け
-      if (/^[をはがにのとでもへやか]/.test(l)) return false;                // 助詞から始まる＝崩れた認識
-      if (/^[゠-ヿー・A-Za-z0-9&'.\s]+$/.test(l) && (l.match(/[゠-ヿA-Za-z]/g) || []).length >= 3) return true;
-      if (/店|屋|堂|館|薬局|薬店|商店|市場|マート|ストア|スーパー|カフェ|ドラッグ|ショップ|センター|ホーム|モール|食品|百貨|商会|工房|食堂|書店/.test(l)) {
-        return /^[぀-ヿ一-鿿A-Za-z0-9ー・&'.\s]+$/.test(l);
-      }
-      return false;
-    }
-    var bad = /レシート|領収|TEL|電話|〒|登録番号|^T\d{10,}|http|www\.|\d{2,4}[\/.\-]\d{1,2}[\/.\-]\d{1,2}|^[\d\s\-:.]+$|ありがとう|毎度|いらっしゃい|責任者|担当|No\.|NO\./i;
-    var cands = [];
-    for (var li = 0; li < Math.min(rawLines.length, 8); li++) {
-      var l = rawLines[li].replace(/([^\x00-\x7F])\s+(?=[^\x00-\x7F])/g, '$1').trim();   // 日本語文字間の空白を詰める
-      if (bad.test(l) || /[都道府県市区町村郡].*\d|\d+-\d+/.test(l)) continue;           // 住所・電話・日付など
-      if (plausibleStore(l)) cands.push({ l: l, i: li });
-    }
-    var store = '';
-    if (chain) {
-      store = chain.name;
-      // 同じ店名を含まない「◯◯店」の行が上部にあれば、支店名として添える
-      // 店名（崩れた認識を含む）と同じ行なら、末尾の「◯◯店」だけを支店名として取り出す
-      var branch = '';
-      cands.some(function (c) {
-        var compact = c.l.replace(/\s/g, ''), tok = c.l;
-        var isChainLine = c.l.indexOf(chain.name) >= 0 || chain.rx.test(compact) || chain.keys.some(function (k) { return fuzzyHas(compact, k); });
-        if (isChainLine) { var parts = c.l.split(/\s+/); tok = parts.length > 1 ? parts[parts.length - 1] : ''; }
-        if (tok && tok.length >= 3 && tok.length <= 20 && /店$/.test(tok) && tok !== chain.name) { branch = tok; return true; }
-        return false;
-      });
-      if (branch) store += ' ' + branch;
-    } else if (cands.length) {
-      store = cands[0].l;
-      var nx = cands[1];
-      if (nx && nx.i === cands[0].i + 1 && nx.l.length <= 20 && /店$|支店|営業所|店舗$/.test(nx.l) && !/店$/.test(store)) store += ' ' + nx.l;   // 「Seria」+「オリンピック関原店」
-      store = store.slice(0, 40);
-    }
-
-    // ---- カテゴリ推測：辞書 → 店名・上部の行（該当なしは null＝現状維持）----
-    var head = (store + ' ' + headRaw.join(' ')).replace(/[\s　]+/g, ' ');
-    var headNS = head.replace(/ /g, '');
-    var category = chain ? chain.cat : null;
-    for (var ri = 0; ri < CAT_RULES.length && !category; ri++) {
-      if (CAT_RULES[ri][1].test(head) || CAT_RULES[ri][1].test(headNS)) category = CAT_RULES[ri][0];
-    }
-    dbg.taxable = taxable; dbg.chosen = amount;
-    return { date: date, amount: amount, store: store, chain: chain ? chain.name : '', category: category, debug: dbg };
-  }
-
-  function loadImageFromFile(file) {
-    return new Promise(function (resolve, reject) {
-      var url = URL.createObjectURL(file), img = new Image();
-      img.onload = function () { resolve({ img: img, url: url }); };
-      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('decode')); };
-      img.src = url;
-    });
-  }
-
-  function runOcr(file) {
-    var tok = ++ocrToken;
-    setOcrBusy(true);
-    showOcr('run', '🔍 レシートを解析中...（画像を補正しています）', 3);
-    var timer = null, worker = null;
-    var timeout = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error('timeout')); }, 240000); });
-    var job = (async function () {
-      var loaded = await loadImageFromFile(file);
-      var cvs;
-      try { cvs = buildOcrCanvases(loaded.img); } finally { URL.revokeObjectURL(loaded.url); }
-      var T = await loadTesseract();
-      if (tok !== ocrToken) return null;
-      var pass = 1;
-      worker = await T.createWorker('jpn', 1, {
-        logger: function (m) {
-          if (tok !== ocrToken || !m || typeof m.progress !== 'number') return;
-          var label = m.status === 'recognizing text' ? '文字を認識中' : '準備中';
-          showOcr('run', '🔍 レシートを解析中...（' + label + ' ' + Math.round(m.progress * 100) + '%' + (pass > 1 ? '・再解析' : '') + '）', m.progress * 100);
-        }
-      });
-      // 1回目：二値化画像（レシート向けの単一ブロック指定）
-      await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
-      var t1 = (await worker.recognize(cvs.bin)).data.text;
-      console.log('[OCR] 1回目（二値化画像）rawText:\n' + t1);
-      var r1 = extractReceipt(t1);
-      console.log('[OCR] 1回目 金額候補・抽出結果:', r1.debug, { date: r1.date, amount: r1.amount, store: r1.store, category: r1.category });
-      if (tok !== ocrToken) return null;
-      if (r1.date && r1.amount) return r1;
-      // 2回目：日付か金額が取れなかった場合だけ、グレースケール画像で再解析して補完
-      pass = 2;
-      await worker.setParameters({ tessedit_pageseg_mode: '4' });
-      var t2 = (await worker.recognize(cvs.gray)).data.text;
-      console.log('[OCR] 2回目（グレースケール画像）rawText:\n' + t2);
-      var r2 = extractReceipt(t2);
-      console.log('[OCR] 2回目 金額候補・抽出結果:', r2.debug, { date: r2.date, amount: r2.amount, store: r2.store, category: r2.category });
-      return { date: r1.date || r2.date, amount: r1.amount || r2.amount, store: r1.store || r2.store, chain: r1.chain || r2.chain, category: r1.category || r2.category };
-    })();
-    Promise.race([job, timeout]).then(function (r) {
-      clearTimeout(timer);
-      if (worker) { worker.terminate().catch(function () {}); worker = null; }
-      if (tok !== ocrToken || !r) return;   // モーダルが閉じられた／別の写真に差し替えられた
-      setOcrBusy(false);
-      var done = [];
-      // 自動入力のみ。保存はしない（ユーザーが画像と見比べて確認し、登録ボタンを押すまで確定しない）
-      if (r.date) { $('dateIn').value = r.date; $('dateIn').classList.add('ocr-filled'); updateModalTitle(); done.push('日付'); }
-      if (r.amount) { $('amount').value = String(r.amount); $('amount').classList.add('ocr-filled'); $('err').textContent = ''; done.push('金額'); }
-      // カテゴリ → 店名の順に決める。店名はカテゴリ別マスターから探し、見つかればそのカテゴリを選んで店名プルダウンも自動選択する
-      hideStoreSuggest();
-      var wantCat = (r.category && data.categories.indexOf(r.category) >= 0) ? r.category : null;
-      var hit = r.store ? (findStore(r.chain || '', wantCat) || findStore(r.store, wantCat)) : null;
-      if (hit && data.categories.indexOf(hit.cat) >= 0) wantCat = hit.cat;   // マスター上の所属カテゴリを優先
-      if (wantCat) {
-        form.category = wantCat; renderModalCats(); done.push('カテゴリ(' + wantCat + ')');
-        var pb = $('catBtns').querySelector('button.on'); if (pb) pb.classList.add('ocr-pick');
-      }
-      if (hit) {
-        renderStoreSel(hit.name); $('storeSel').classList.add('ocr-filled'); done.push('店名(' + hit.name + ')');
-      } else {
-        renderStoreSel('');
-        if (r.store) {
-          // マスターにない店名：店名欄に入れ（メモ欄には書き込まない）、ワンタップで現在のカテゴリの店名リストへ追加できるようにする
-          var nm0 = String(r.chain || r.store).trim().slice(0, 30);
-          $('storeSel').value = nm0; $('storeSel').classList.add('ocr-filled'); done.push('店名(' + nm0 + ')');
-          showStoreSuggest(nm0);
-        }
-      }
-      if (done.length) $('ocrReview').hidden = false;   // 「読み取り結果を確認してください」バー
-      if (r.date || r.amount) {
-        showOcr('ok', done.join('・') + 'を自動入力しました。画像と見比べて内容を確認してください');
-      } else if (done.length) {
-        showOcr('ok', done.join('・') + 'を自動入力しました。日付と金額は読み取れませんでした');
-      } else {
-        showOcr(null);
-        toast('自動認識できませんでした。手動で入力してください');
-      }
-    }).catch(function (e) {
-      clearTimeout(timer);
-      if (worker) { worker.terminate().catch(function () {}); worker = null; }
-      if (tok !== ocrToken) return;
-      setOcrBusy(false);
-      showOcr(null);
-      toast(e && e.message === 'load failed'
-        ? '解析ライブラリを読み込めませんでした（オフライン？）。手動で入力してください'
-        : '自動認識できませんでした。手動で入力してください');
-    });
   }
 
   var editingId = null;  // 編集中の支出ID（新規入力時は null）
@@ -3055,7 +2695,6 @@ input:focus { outline: none; border-color: var(--accent); }
     var ex = typeof id === 'string' ? findExp(id) : null;
     hideDayPop();
     editingId = ex ? ex.id : null;
-    ocrToken++; setOcrBusy(false); showOcr(null);   // 前回の解析結果・進行中の解析を破棄
     hideStoreSuggest();
     $('dateIn').value = ex ? ex.date : selected;
     updateModalTitle();
@@ -3063,9 +2702,10 @@ input:focus { outline: none; border-color: var(--accent); }
     $('memo').value = ex ? ex.memo : '';
     $('err').textContent = '';
     $('saveBtn').textContent = ex ? 'この内容で確認・上書き保存する' : 'この内容で確認・登録する';
-    clearReview();
-    setPhoto(ex ? ex.photo : null);
-    formPhotoBase = ex ? ex.photo : null;
+    photoTok++; adding = 0;   // 読み込み中だった前回の写真は破棄
+    formPhotosBase = ex ? ex.photos.slice() : [];
+    setPhotos(formPhotosBase);
+    $('overlay9').classList.remove('open');
     $('editHint').hidden = !ex;
     setOp(data.operator === '妻' ? '妻' : data.operator === '夫' ? '夫' : form.op || '夫');
     // 履歴表示
@@ -3090,8 +2730,6 @@ input:focus { outline: none; border-color: var(--accent); }
     setTimeout(function () { $('amount').focus(); }, 50);
   }
   function closeModal() {
-    ocrToken++; setOcrBusy(false);   // 進行中の解析結果は破棄
-    clearReview();
     hideStoreSuggest();
     $('overlay').classList.remove('open');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -3242,7 +2880,6 @@ input:focus { outline: none; border-color: var(--accent); }
   $('form').addEventListener('submit', function (e) {
     e.preventDefault();
     var raw = toHalf($('amount').value);
-    if (ocrBusy) return;   // 解析中は保存しない
     var ex = editingId ? findExp(editingId) : null;
     var dateVal = normDate($('dateIn').value);
     if (!dateVal) { $('err').textContent = '日付は 2026-10-15 の形式で入力してください'; return; }
@@ -3272,11 +2909,11 @@ input:focus { outline: none; border-color: var(--accent); }
         ch.push('メモ ' + who(ex.memo, oldAuthor) + '→' + who(memo, op));
       }
       // 写真は「開いた時点から変えたか」で判定（バックグラウンドで data URL → Storage パスに置き換わっても変更扱いにしない）
-      var photoChanged = (formPhoto || null) !== (formPhotoBase || null);
-      if (photoChanged) ch.push(!formPhoto ? 'レシート写真 削除' : formPhotoBase ? 'レシート写真 差替え' : 'レシート写真 追加');
+      var photoChanged = !samePhotos(formPhotos, formPhotosBase);
+      if (photoChanged) ch.push(!formPhotos.length ? 'レシート写真 削除' : !formPhotosBase.length ? 'レシート写真 追加（' + formPhotos.length + '枚）' : 'レシート写真 変更（' + formPhotosBase.length + '枚→' + formPhotos.length + '枚）');
       if (ch.length) {
         ex.date = dateVal; ex.who = form.who; ex.category = form.category; ex.amount = Number(raw); ex.store = store; ex.memo = memo;
-        if (photoChanged) ex.photo = formPhoto || null;
+        if (photoChanged) ex.photos = formPhotos.slice();
         ex.updatedAt = now; ex.updatedBy = op;
         ex.editHistory.push({ timestamp: now, updater: op, summary: ch.join(' / ') });
       }
@@ -3289,7 +2926,7 @@ input:focus { outline: none; border-color: var(--accent); }
         category: form.category,
         store: store,
         memo: memo,
-        photo: formPhoto || null,
+        photos: formPhotos.slice(),
         createdAt: now, createdBy: op,
         updatedAt: now, updatedBy: op,
         editHistory: []
@@ -3336,7 +2973,7 @@ input:focus { outline: none; border-color: var(--accent); }
   function downloadCsv(items, filename) {
     var rows = [['日付', '支払者', 'カテゴリ', '店名', '金額', 'メモ', '最終更新日時', '最終更新者', 'レシート写真']];  // 写真データ自体は出力しない（あり/なしのみ）
     items.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).forEach(function (x) {
-      rows.push([x.date, nm(x.who), x.category, x.store || '', x.amount, x.memo, x.updatedAt || x.createdAt || '', x.updatedBy ? nm(x.updatedBy) : '', x.photo ? 'あり' : 'なし']);
+      rows.push([x.date, nm(x.who), x.category, x.store || '', x.amount, x.memo, x.updatedAt || x.createdAt || '', x.updatedBy ? nm(x.updatedBy) : '', x.photos.length ? x.photos.length + '枚' : 'なし']);
     });
     var text = rows.map(function (r, i) {
       return r.map(function (c, j) { return (i > 0 && j === 4) ? String(c) : csvCell(c); }).join(',');
@@ -3744,11 +3381,11 @@ input:focus { outline: none; border-color: var(--accent); }
   }
   function toRow(x) {
     return { id: x.id, date: x.date, amount: x.amount, category: x.category, store: x.store, memo: x.memo, payer: x.who,
-      receipt_image: x.photo || null, created_at: x.createdAt, created_by: x.createdBy, updated_at: x.updatedAt, updated_by: x.updatedBy, history: x.editHistory };
+      receipt_image: packPhotos(x.photos), created_at: x.createdAt, created_by: x.createdBy, updated_at: x.updatedAt, updated_by: x.updatedBy, history: x.editHistory };
   }
   function fromRow(r) {
     return withMeta({ id: String(r.id), date: r.date, amount: Number(r.amount) || 0, category: r.category, store: r.store, memo: r.memo,
-      who: r.payer === '妻' ? '妻' : '夫', photo: r.receipt_image || null, createdAt: r.created_at || '', createdBy: r.created_by || '',
+      who: r.payer === '妻' ? '妻' : '夫', photos: parsePhotos(r.receipt_image), createdAt: r.created_at || '', createdBy: r.created_by || '',
       updatedAt: r.updated_at || '', updatedBy: r.updated_by || '', editHistory: Array.isArray(r.history) ? r.history : [] });
   }
   function rowSig(r) {   // 写真は長さ＋末尾だけ見る（毎回 Base64 全体を比較しない）
@@ -3758,7 +3395,10 @@ input:focus { outline: none; border-color: var(--accent); }
       (r.history || []).map(function (h) { return [h.timestamp, h.updater, h.summary]; })]);
   }
   // 写真の参照：なし=null／端末内の Base64=「data」／Storage 上=そのパス
-  function localRef(x) { return x.photo ? (x.photo.indexOf('data:') === 0 ? 'data' : x.photo) : null; }
+  function localRef(x) {
+    var s = packPhotos(x.photos);
+    return !s ? null : x.photos.some(function (p) { return p.indexOf('data:') === 0; }) ? (x.photos.length === 1 ? 'data' : s) : s;
+  }
   function remoteRef(r) { return hasRefCol ? (r.image_ref || null) : (r.has_image ? 'data' : null); }
   function lightSig(r, ref) {   // 写真本体と履歴の中身を除いた軽い比較用（一覧取得では写真を取らない）
     return canon([r.date, Number(r.amount), r.category, r.store, r.memo, r.payer, r.created_at || '', r.created_by || '',
@@ -3810,15 +3450,19 @@ input:focus { outline: none; border-color: var(--accent); }
     if (!hasRefCol) return;   // 旧スキーマ（SQL 未更新）のときは、従来どおり行に Base64 を持たせる
     var changed = false;
     photoErr = '';
-    var list = data.expenses.filter(function (x) { return x.photo && x.photo.indexOf('data:') === 0; });
+    var list = [];   // 1枚ごとの作業（支出 × data URL の写真）
+    data.expenses.forEach(function (x) {
+      x.photos.forEach(function (p) { if (p.indexOf('data:') === 0) list.push({ x: x, src: p }); });
+    });
     for (var i = 0; i < list.length; i++) {
-      var x = list[i], src = x.photo;
+      var x = list[i].x, src = list[i].src;
       var path = 'r/' + x.id + '_' + hashStr(src) + '.jpg';   // 内容から決まる名前＝複数端末が同時に移行しても同じ場所に収まる
       try {
         var blob = dataUrlToBlob(src);
         var res = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
         if (res.error && !(String(res.error.statusCode) === '409' || /already exists|Duplicate/i.test(res.error.message || ''))) throw res.error;
-        if (x.photo === src) { x.photo = path; changed = true; idbPut(path, blob); }   // アップロード中に写真が差し替えられていなければ置き換える
+        var at = x.photos.indexOf(src);
+        if (at >= 0) { x.photos[at] = path; changed = true; idbPut(path, blob); }   // アップロード中に写真が取り消されていなければ置き換える
       } catch (e) {
         photoErr = /Bucket not found|not found/i.test((e && e.message) || '') ? '写真の保管場所（Storage）が未作成です。SQL を再実行してください' : '写真のアップロードに失敗: ' + msgOf(e);
         break;
